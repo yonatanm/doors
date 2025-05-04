@@ -43,8 +43,8 @@
 
   // --- Door Properties ---
   const scale = 5; // 5 pixels per cm
-  const doorWidthCm = 40;
-  const doorHeightCm = 20;
+  const doorWidthCm = 44; // Changed from 40 to make inner width 40cm
+  const doorHeightCm = 24; // Changed from 20 to make inner height 20cm
   const borderWidthCm = 2;
 
   const doorWidthPx = doorWidthCm * scale; // 200px
@@ -57,21 +57,33 @@
   let isDragging = false;
   let dragOffsetX = 0;
 
-  // --- Draw Door ---
+  // --- Draw Door and VP ---
   function drawDoor(x, y) {
-    // Draw the border
+    // 1. Draw the border
     ctx.strokeStyle = 'black';
     ctx.lineWidth = borderWidthPx;
-    // strokeRect draws the border *centered* on the path.
-    // To make the *outer* dimensions match doorWidthPx x doorHeightPx,
-    // we draw the rectangle slightly inset by half the border width.
     ctx.strokeRect(
       x + borderWidthPx / 2,
       y + borderWidthPx / 2,
       doorWidthPx - borderWidthPx,
       doorHeightPx - borderWidthPx
     );
-    // Transparent inside (default)
+
+    // 2. Draw the VP circle
+    const vpRadiusCm = 1;
+    const vpRadiusPx = vpRadiusCm * scale; // 5px now
+    const vpOffsetYCm = 5;
+    const vpOffsetYPx = vpOffsetYCm * scale; // 25px
+
+    // Calculate VP center coordinates
+    const vpCenterX = x + doorWidthPx / 2; // Horizontal middle of the door
+    const vpCenterY = y + doorHeightPx + vpOffsetYPx; // Below the bottom edge of the door
+
+    // Draw the circle
+    ctx.fillStyle = 'blue'; // Let's give it a color for visibility
+    ctx.beginPath();
+    ctx.arc(vpCenterX, vpCenterY, vpRadiusPx, 0, Math.PI * 2);
+    ctx.fill();
   }
 
   // --- Redraw Canvas ---
