@@ -52,18 +52,18 @@
         <legend>Left Door Settings</legend>
         <div>
             <label for="leftNumSectorsInput">Num Black Sectors:</label>
-            <input type="number" id="leftNumSectorsInput" value="19" min="1" max="50" step="1">
-            <span id="leftNumSectorsValue">19</span>
+            <input type="number" id="leftNumSectorsInput" value="17" min="1" max="50" step="1">
+            <span id="leftNumSectorsValue">17</span>
         </div>
         <div>
             <label for="leftBlackAngleInput">Black Sector Angle:</label>
-            <input type="number" id="leftBlackAngleInput" value="3" min="0.1" max="45" step="0.1">
-            <span id="leftBlackAngleValue">3.0</span> deg
+            <input type="number" id="leftBlackAngleInput" value="4" min="0.1" max="45" step="0.1">
+            <span id="leftBlackAngleValue">4.0</span> deg
         </div>
         <div>
             <label for="leftSpaceAngleInput">Space Angle:</label>
-            <input type="number" id="leftSpaceAngleInput" value="2" min="0" max="45" step="0.1">
-            <span id="leftSpaceAngleValue">2.0</span> deg
+            <input type="number" id="leftSpaceAngleInput" value="3" min="0" max="45" step="0.1">
+            <span id="leftSpaceAngleValue">3.0</span> deg
         </div>
     </fieldset>
 
@@ -76,13 +76,13 @@
         </div>
         <div>
             <label for="rightBlackAngleInput">Black Sector Angle:</label>
-            <input type="number" id="rightBlackAngleInput" value="3" min="0.1" max="45" step="0.1">
-            <span id="rightBlackAngleValue">3.0</span> deg
+            <input type="number" id="rightBlackAngleInput" value="3.5" min="0.1" max="45" step="0.1">
+            <span id="rightBlackAngleValue">3.5</span> deg
         </div>
         <div>
             <label for="rightSpaceAngleInput">Space Angle:</label>
-            <input type="number" id="rightSpaceAngleInput" value="2" min="0" max="45" step="0.1">
-            <span id="rightSpaceAngleValue">2.0</span> deg
+            <input type="number" id="rightSpaceAngleInput" value="2.5" min="0" max="45" step="0.1">
+            <span id="rightSpaceAngleValue">2.5</span> deg
         </div>
     </fieldset>
 </div>
@@ -136,17 +136,17 @@
   // --- Door States (Position and Settings) ---
   let leftDoorState = {
     x: 0, y: 0,
-    numBlackSectors: 19,
-    blackSectorDeg: 3,
-    spaceSectorDeg: 2,
+    numBlackSectors: 17,
+    blackSectorDeg: 4,
+    spaceSectorDeg: 3,
     blackSectorRad: 0, // Calculated
     spaceSectorRad: 0  // Calculated
   };
   let rightDoorState = {
     x: 0, y: 0,
     numBlackSectors: 19,
-    blackSectorDeg: 3,
-    spaceSectorDeg: 2,
+    blackSectorDeg: 3.5,
+    spaceSectorDeg: 2.5,
     blackSectorRad: 0, // Calculated
     spaceSectorRad: 0  // Calculated
   };
