@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Canvas Door</title>
+<style>
+  body { margin: 0; overflow: hidden; background-color: #f0f0f0; }
+  canvas { border: 1px solid black; }
+</style>
+</head>
+<body>
+
+<canvas id="doorCanvas" width="400" height="300"></canvas>
+
+<script>
+  const canvas = document.getElementById('doorCanvas');
+  const ctx = canvas.getContext('2d');
+
+  // --- Draw Flower --- (Behind the door)
+  function drawFlower(x, y) {
+    // Center (yellow)
+    ctx.fillStyle = 'yellow';
+    ctx.beginPath();
+    ctx.arc(x, y, 15, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Petals (red)
+    ctx.fillStyle = 'red';
+    const petalLength = 30;
+    const petalWidth = 10;
+    for (let i = 0; i < 6; i++) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate((Math.PI / 3) * i);
+      ctx.beginPath();
+      ctx.ellipse(0, -petalLength / 2 - 10, petalWidth, petalLength, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+
+  // Draw the flower centered relative to the door position
+  const flowerX = 200;
+  const flowerY = 150;
+  drawFlower(flowerX, flowerY);
+
+  // --- Draw Door --- (Over the flower)
+  const scale = 5; // 5 pixels per cm
+  const doorWidthCm = 40;
+  const doorHeightCm = 20;
+  const borderWidthCm = 2;
+
+  const doorWidthPx = doorWidthCm * scale; // 200px
+  const doorHeightPx = doorHeightCm * scale; // 100px
+  const borderWidthPx = borderWidthCm * scale; // 10px
+
+  // Center the door on the canvas
+  const doorX = (canvas.width - doorWidthPx) / 2; // (400 - 200) / 2 = 100
+  const doorY = (canvas.height - doorHeightPx) / 2; // (300 - 100) / 2 = 100
+
+  // Draw the border
+  ctx.strokeStyle = 'black';
+  ctx.lineWidth = borderWidthPx;
+
+  // strokeRect draws the border *centered* on the path.
+  // To make the *outer* dimensions match doorWidthPx x doorHeightPx,
+  // we draw the rectangle slightly inset by half the border width.
+  ctx.strokeRect(
+    doorX + borderWidthPx / 2,
+    doorY + borderWidthPx / 2,
+    doorWidthPx - borderWidthPx,
+    doorHeightPx - borderWidthPx
+  );
+
+  // The inside of the strokeRect is transparent by default,
+  // so the flower underneath will show through.
+
+</script>
+
+</body>
+</html>
