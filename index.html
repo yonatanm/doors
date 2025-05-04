@@ -4,31 +4,85 @@
 <title>Canvas Door</title>
 <style>
   body { margin: 0; overflow: hidden; background-color: #f0f0f0; font-family: sans-serif;}
-  canvas { border: 1px solid black; display: block; margin-top: 10px;}
-  .controls { padding: 10px; background-color: #eee; border: 1px solid #ccc; margin-bottom: 10px; }
+  canvas { border: 1px solid black; display: block; /* Remove margin-top, handle spacing differently */}
+  .controls { padding: 10px; background-color: #eee; border: 1px solid #ccc; }
   .controls legend { font-weight: bold; margin-bottom: 5px; }
   .controls div { margin-bottom: 5px; }
   .controls label { display: inline-block; min-width: 150px; margin-right: 5px; text-align: right; }
   .controls input { width: 60px; margin-right: 5px;}
   .controls span { display: inline-block; min-width: 25px; text-align: right;}
 
+  /* Settings Container - Mobile First (Hidden) */
   .settings-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    width: 80%;
+    max-width: 350px;
+    background-color: rgba(238, 238, 238, 0.95); /* Slightly transparent */
+    border-right: 1px solid #ccc;
+    padding: 15px;
+    box-sizing: border-box;
+    overflow-y: auto;
+    z-index: 1000;
     display: flex;
-    flex-direction: row; /* Arrange items horizontally */
-    flex-wrap: wrap; /* Allow wrapping if needed */
-    gap: 15px; /* Add space between fieldsets */
-    margin-bottom: 10px; /* Space below the container */
+    flex-direction: column; /* Stack fieldsets vertically */
+    gap: 15px;
+    transform: translateX(-105%); /* Start fully hidden */
+    transition: transform 0.3s ease-in-out;
   }
+
+  .settings-container.active {
+    transform: translateX(0); /* Slide in */
+  }
+
   .settings-container .controls {
-      margin-bottom: 0; /* Remove bottom margin from individual fieldsets */
-      flex: 1; /* Allow fieldsets to grow */
-      min-width: 250px; /* Prevent them from becoming too narrow */
+      margin-bottom: 0;
+      flex: 0 0 auto; /* Don't grow/shrink, base on content */
+      min-width: unset; /* Reset min-width for vertical layout */
+      border: none; /* Remove border within the panel */
+      padding: 0;
+      background-color: transparent;
   }
+
+  /* Hamburger Button */
+  #hamburger-btn {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      z-index: 1001; /* Above settings panel */
+      font-size: 24px;
+      padding: 5px 10px;
+      background-color: #ddd;
+      border: 1px solid #aaa;
+      cursor: pointer;
+      border-radius: 4px;
+  }
+
+  /* Close Button (inside settings) */
+  #close-settings-btn {
+      position: absolute; /* Position relative to settings-container */
+      top: 5px;
+      right: 10px;
+      font-size: 20px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 5px;
+      line-height: 1;
+  }
+
+  /* Desktop Layout - Restore Horizontal Flex - REMOVED */
+  /* @media (min-width: 900px) { ... } */
 </style>
 </head>
 <body>
 
-<div class="settings-container">
+<button id="hamburger-btn">☰</button>
+
+<div class="settings-container" id="settings-panel">
+    <button id="close-settings-btn">×</button>
     <fieldset class="controls">
       <legend>Global Settings</legend>
       <div>
@@ -93,7 +147,12 @@
   const canvas = document.getElementById('doorCanvas');
   const ctx = canvas.getContext('2d');
 
-  // Get Global control elements
+  // --- Get DOM Elements ---
+  const settingsPanel = document.getElementById('settings-panel');
+  const hamburgerBtn = document.getElementById('hamburger-btn');
+  const closeSettingsBtn = document.getElementById('close-settings-btn');
+
+  // Global control elements
   const innerWidthInput = document.getElementById('innerWidthInput');
   const innerHeightInput = document.getElementById('innerHeightInput');
   const vpOffsetInput = document.getElementById('vpOffsetInput');
@@ -430,6 +489,14 @@
   rightBlackAngleInput.addEventListener('input', updateAndRedraw);
   rightSpaceAngleInput.addEventListener('input', updateAndRedraw);
 
+  // Settings Toggle
+  hamburgerBtn.addEventListener('click', () => {
+      settingsPanel.classList.toggle('active');
+  });
+
+  closeSettingsBtn.addEventListener('click', () => {
+      settingsPanel.classList.remove('active');
+  });
 
   // --- Initial Setup ---
   updateAndRedraw(); // Calculate initial dimensions/settings and draw
