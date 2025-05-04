@@ -8,8 +8,9 @@
   .controls { padding: 10px; background-color: #eee; border: 1px solid #ccc; margin-bottom: 10px; }
   .controls legend { font-weight: bold; margin-bottom: 5px; }
   .controls div { margin-bottom: 5px; }
-  .controls label { display: inline-block; min-width: 150px; margin-right: 5px;}
+  .controls label { display: inline-block; min-width: 150px; margin-right: 5px; text-align: right; }
   .controls input { width: 60px; margin-right: 5px;}
+  .controls span { display: inline-block; min-width: 25px; text-align: right;}
 </style>
 </head>
 <body>
@@ -33,19 +34,46 @@
   </div>
 </fieldset>
 
+<fieldset class="controls">
+    <legend>Door Settings</legend>
+    <div>
+        <label for="numSectorsInput">Num Black Sectors:</label>
+        <input type="number" id="numSectorsInput" value="19" min="1" max="50" step="2"> <!-- Step 2 to keep it odd? Or allow even? Let's allow any for now -->
+        <span id="numSectorsValue">19</span>
+    </div>
+    <div>
+        <label for="blackAngleInput">Black Sector Angle:</label>
+        <input type="number" id="blackAngleInput" value="3" min="0.1" max="45" step="0.1">
+        <span id="blackAngleValue">3</span> deg
+    </div>
+    <div>
+        <label for="spaceAngleInput">Space Angle:</label>
+        <input type="number" id="spaceAngleInput" value="2" min="0" max="45" step="0.1">
+        <span id="spaceAngleValue">2</span> deg
+    </div>
+</fieldset>
+
 <canvas id="doorCanvas" width="800" height="400"></canvas>
 
 <script>
   const canvas = document.getElementById('doorCanvas');
   const ctx = canvas.getContext('2d');
 
-  // Get control elements
+  // Get Global control elements
   const innerWidthInput = document.getElementById('innerWidthInput');
   const innerHeightInput = document.getElementById('innerHeightInput');
   const vpOffsetInput = document.getElementById('vpOffsetInput');
   const innerWidthValueSpan = document.getElementById('innerWidthValue');
   const innerHeightValueSpan = document.getElementById('innerHeightValue');
   const vpOffsetValueSpan = document.getElementById('vpOffsetValue');
+
+  // Get Door Setting control elements
+  const numSectorsInput = document.getElementById('numSectorsInput');
+  const blackAngleInput = document.getElementById('blackAngleInput');
+  const spaceAngleInput = document.getElementById('spaceAngleInput');
+  const numSectorsValueSpan = document.getElementById('numSectorsValue');
+  const blackAngleValueSpan = document.getElementById('blackAngleValue');
+  const spaceAngleValueSpan = document.getElementById('spaceAngleValue');
 
 
   // --- Draw Flower --- (Fixed position)
@@ -80,32 +108,49 @@
   const borderWidthPx = borderWidthCm * scale; // 10px
   const vpRadiusCm = 1;
   const vpRadiusPx = vpRadiusCm * scale; // 5px
+  const sectorRadiusCm = 37;
+  const sectorRadiusPx = sectorRadiusCm * scale;
 
-  // State variables that will be updated from controls
+  // State variables - Global
   let innerWidthCm = 40;
   let innerHeightCm = 20;
   let vpOffsetYCm = 5;
 
-  // Calculated dimensions (will be updated in updateDimensions)
+  // State variables - Door Settings
+  let numBlackSectors = 19;
+  let blackSectorDeg = 3;
+  let spaceSectorDeg = 2;
+
+  // Calculated dimensions (will be updated in updateAndRedraw)
   let doorWidthCm, doorHeightCm, doorWidthPx, doorHeightPx, vpOffsetYPx;
+  let blackSectorRad, spaceSectorRad;
 
   // --- Door Drag State ---
-  let doorX; // Initial position calculated in updateDimensions
-  let doorY; // Position calculated in updateDimensions
+  let doorX; // Initial position calculated in updateAndRedraw
+  let doorY; // Position calculated in updateAndRedraw
   let isDragging = false;
   let dragOffsetX = 0;
 
-  // --- Update Dimensions from Inputs ---
-  function updateDimensionsFromInputs() {
-    // Read values from inputs
+  // --- Update State from Inputs & Redraw ---
+  function updateAndRedraw() {
+    // Read global values from inputs
     innerWidthCm = parseFloat(innerWidthInput.value);
     innerHeightCm = parseFloat(innerHeightInput.value);
     vpOffsetYCm = parseFloat(vpOffsetInput.value);
+
+    // Read door settings values from inputs
+    numBlackSectors = parseInt(numSectorsInput.value);
+    blackSectorDeg = parseFloat(blackAngleInput.value);
+    spaceSectorDeg = parseFloat(spaceAngleInput.value);
 
     // Update display spans
     innerWidthValueSpan.textContent = innerWidthCm;
     innerHeightValueSpan.textContent = innerHeightCm;
     vpOffsetValueSpan.textContent = vpOffsetYCm;
+    numSectorsValueSpan.textContent = numBlackSectors;
+    blackAngleValueSpan.textContent = blackSectorDeg.toFixed(1);
+    spaceAngleValueSpan.textContent = spaceSectorDeg.toFixed(1);
+
 
     // Recalculate total door dimensions based on inner dimensions + border
     doorWidthCm = innerWidthCm + (borderWidthCm * 2);
@@ -115,6 +160,8 @@
     doorWidthPx = doorWidthCm * scale;
     doorHeightPx = doorHeightCm * scale;
     vpOffsetYPx = vpOffsetYCm * scale;
+    blackSectorRad = blackSectorDeg * Math.PI / 180;
+    spaceSectorRad = spaceSectorDeg * Math.PI / 180;
 
     // Recalculate door's centered position (needed if dimensions change)
     // Don't change doorX if dragging, only recalculate Y and initial X
@@ -127,7 +174,7 @@
     doorX = Math.max(0, doorX);
     doorX = Math.min(canvas.width - doorWidthPx, doorX);
 
-    redraw(); // Redraw with new dimensions
+    redraw(); // Redraw with new dimensions/settings
   }
 
 
@@ -136,28 +183,21 @@
     // --- Calculations ---
     const innerWidthPx = innerWidthCm * scale;
     const innerHeightPx = innerHeightCm * scale;
-    // Inner rectangle top-left corner
     const innerRectX = x + borderWidthPx;
     const innerRectY = y + borderWidthPx;
-    // VP center coordinates
     const vpCenterX = x + doorWidthPx / 2;
     const vpCenterY = y + doorHeightPx + vpOffsetYPx;
-    const radiusPx = 37 * scale;
-    const blackDeg = 3;
-    const transDeg = 2;
-    const blackRad = blackDeg * Math.PI / 180;
-    const stepRad = (blackDeg + transDeg) * Math.PI / 180;
 
     // --- Drawing ---
 
-    // 1. Draw the border (using total dimensions)
+    // 1. Draw the border
     ctx.strokeStyle = 'black';
     ctx.lineWidth = borderWidthPx;
     ctx.strokeRect(
       x + borderWidthPx / 2,
       y + borderWidthPx / 2,
-      doorWidthPx - borderWidthPx, // This is actually innerWidthPx
-      doorHeightPx - borderWidthPx  // This is actually innerHeightPx
+      innerWidthPx, // Use inner directly
+      innerHeightPx // Use inner directly
     );
 
     // 2. Draw Sectors inside the inner bounds
@@ -168,32 +208,29 @@
     ctx.rect(innerRectX, innerRectY, innerWidthPx, innerHeightPx);
     ctx.clip();
 
-    // Calculate angles from VP to top-inner corners
-    // atan2(y, x) -> angle from positive x-axis, counter-clockwise
-    const angleLeft = Math.atan2(innerRectY - vpCenterY, innerRectX - vpCenterX);
-    const angleRight = Math.atan2(innerRectY - vpCenterY, (innerRectX + innerWidthPx) - vpCenterX);
+    // Calculate total angle span and starting angle for centering
+    const numSpaces = Math.max(0, numBlackSectors - 1);
+    const totalAngleRad = (numBlackSectors * blackSectorRad) + (numSpaces * spaceSectorRad);
+    // Center the fan horizontally around the vertical axis (-PI/2 or 270 degrees)
+    const startAngle = (-Math.PI / 2) - (totalAngleRad / 2);
+    const stepRad = blackSectorRad + spaceSectorRad;
 
     // Draw the sectors
     ctx.fillStyle = 'black';
-    let currentStartAngle = angleLeft;
-    while (currentStartAngle < angleRight) {
-        let currentEndAngle = currentStartAngle + blackRad;
-        // Don't let the final sector overshoot the calculated right angle
-        if (currentEndAngle > angleRight) {
-            currentEndAngle = angleRight;
-        }
+    let currentAngle = startAngle;
+    for (let i = 0; i < numBlackSectors; i++) {
+        const endAngle = currentAngle + blackSectorRad;
 
-        if (currentEndAngle > currentStartAngle) { // Ensure angle has width
-            ctx.beginPath();
-            ctx.moveTo(vpCenterX, vpCenterY);
-            // arc(x, y, radius, startAngle, endAngle, anticlockwise)
-            ctx.arc(vpCenterX, vpCenterY, radiusPx, currentStartAngle, currentEndAngle);
-            ctx.closePath();
-            ctx.fill();
+        if (blackSectorRad > 0) { // Only draw if angle > 0
+             ctx.beginPath();
+             ctx.moveTo(vpCenterX, vpCenterY);
+             ctx.arc(vpCenterX, vpCenterY, sectorRadiusPx, currentAngle, endAngle);
+             ctx.closePath();
+             ctx.fill();
         }
 
         // Move to the start of the next black sector
-        currentStartAngle += stepRad;
+        currentAngle += stepRad;
     }
 
     ctx.restore(); // Restore context to remove clipping
@@ -207,13 +244,8 @@
 
   // --- Redraw Canvas ---
   function redraw() {
-    // Clear canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    // Draw flower
     drawFlower(flowerX, flowerY);
-
-    // Draw door (at current position x, y using current dimensions)
     drawDoor(doorX, doorY);
   }
 
@@ -221,52 +253,48 @@
   canvas.addEventListener('mousedown', (e) => {
     const mouseX = e.offsetX;
     const mouseY = e.offsetY;
-
-    // Check if click is within the door bounds (using current dimensions)
     if (mouseX >= doorX && mouseX <= doorX + doorWidthPx &&
         mouseY >= doorY && mouseY <= doorY + doorHeightPx) {
       isDragging = true;
       dragOffsetX = mouseX - doorX;
-      canvas.style.cursor = 'grabbing'; // Change cursor while dragging
+      canvas.style.cursor = 'grabbing';
     }
   });
 
   canvas.addEventListener('mousemove', (e) => {
     if (!isDragging) return;
-
     const mouseX = e.offsetX;
     let newDoorX = mouseX - dragOffsetX;
-    // Ensure door stays within canvas bounds (using current width)
     newDoorX = Math.max(0, newDoorX);
     newDoorX = Math.min(canvas.width - doorWidthPx, newDoorX);
     doorX = newDoorX;
-
     redraw();
   });
 
-  // Combined mouseup and mouseleave logic
   const stopDragging = () => {
      if (isDragging) {
        isDragging = false;
-       canvas.style.cursor = 'grab'; // Restore cursor
-       // Recalculate door center X if needed after drag finishes and dimensions changed
-       // updateDimensionsFromInputs(); // Call this to potentially recenter if needed? Or just redraw? Let's just redraw.
+       canvas.style.cursor = 'grab';
        redraw();
     }
   };
-
   canvas.addEventListener('mouseup', stopDragging);
   canvas.addEventListener('mouseleave', stopDragging);
 
   // --- Input Event Listeners ---
-  innerWidthInput.addEventListener('input', updateDimensionsFromInputs);
-  innerHeightInput.addEventListener('input', updateDimensionsFromInputs);
-  vpOffsetInput.addEventListener('input', updateDimensionsFromInputs);
+  // Global
+  innerWidthInput.addEventListener('input', updateAndRedraw);
+  innerHeightInput.addEventListener('input', updateAndRedraw);
+  vpOffsetInput.addEventListener('input', updateAndRedraw);
+  // Door Settings
+  numSectorsInput.addEventListener('input', updateAndRedraw);
+  blackAngleInput.addEventListener('input', updateAndRedraw);
+  spaceAngleInput.addEventListener('input', updateAndRedraw);
+
 
   // --- Initial Setup ---
-  updateDimensionsFromInputs(); // Calculate initial dimensions and draw
-  canvas.style.cursor = 'grab'; // Set initial cursor
-
+  updateAndRedraw(); // Calculate initial dimensions/settings and draw
+  canvas.style.cursor = 'grab';
 
 </script>
 
