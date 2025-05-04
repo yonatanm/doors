@@ -35,21 +35,40 @@
 </fieldset>
 
 <fieldset class="controls">
-    <legend>Door Settings</legend>
+    <legend>Left Door Settings</legend>
     <div>
-        <label for="numSectorsInput">Num Black Sectors:</label>
-        <input type="number" id="numSectorsInput" value="19" min="1" max="50" step="2"> <!-- Step 2 to keep it odd? Or allow even? Let's allow any for now -->
-        <span id="numSectorsValue">19</span>
+        <label for="leftNumSectorsInput">Num Black Sectors:</label>
+        <input type="number" id="leftNumSectorsInput" value="19" min="1" max="50" step="1">
+        <span id="leftNumSectorsValue">19</span>
     </div>
     <div>
-        <label for="blackAngleInput">Black Sector Angle:</label>
-        <input type="number" id="blackAngleInput" value="3" min="0.1" max="45" step="0.1">
-        <span id="blackAngleValue">3</span> deg
+        <label for="leftBlackAngleInput">Black Sector Angle:</label>
+        <input type="number" id="leftBlackAngleInput" value="3" min="0.1" max="45" step="0.1">
+        <span id="leftBlackAngleValue">3.0</span> deg
     </div>
     <div>
-        <label for="spaceAngleInput">Space Angle:</label>
-        <input type="number" id="spaceAngleInput" value="2" min="0" max="45" step="0.1">
-        <span id="spaceAngleValue">2</span> deg
+        <label for="leftSpaceAngleInput">Space Angle:</label>
+        <input type="number" id="leftSpaceAngleInput" value="2" min="0" max="45" step="0.1">
+        <span id="leftSpaceAngleValue">2.0</span> deg
+    </div>
+</fieldset>
+
+<fieldset class="controls">
+    <legend>Right Door Settings</legend>
+    <div>
+        <label for="rightNumSectorsInput">Num Black Sectors:</label>
+        <input type="number" id="rightNumSectorsInput" value="19" min="1" max="50" step="1">
+        <span id="rightNumSectorsValue">19</span>
+    </div>
+    <div>
+        <label for="rightBlackAngleInput">Black Sector Angle:</label>
+        <input type="number" id="rightBlackAngleInput" value="3" min="0.1" max="45" step="0.1">
+        <span id="rightBlackAngleValue">3.0</span> deg
+    </div>
+    <div>
+        <label for="rightSpaceAngleInput">Space Angle:</label>
+        <input type="number" id="rightSpaceAngleInput" value="2" min="0" max="45" step="0.1">
+        <span id="rightSpaceAngleValue">2.0</span> deg
     </div>
 </fieldset>
 
@@ -67,13 +86,21 @@
   const innerHeightValueSpan = document.getElementById('innerHeightValue');
   const vpOffsetValueSpan = document.getElementById('vpOffsetValue');
 
-  // Get Door Setting control elements
-  const numSectorsInput = document.getElementById('numSectorsInput');
-  const blackAngleInput = document.getElementById('blackAngleInput');
-  const spaceAngleInput = document.getElementById('spaceAngleInput');
-  const numSectorsValueSpan = document.getElementById('numSectorsValue');
-  const blackAngleValueSpan = document.getElementById('blackAngleValue');
-  const spaceAngleValueSpan = document.getElementById('spaceAngleValue');
+  // Get Left Door Setting control elements
+  const leftNumSectorsInput = document.getElementById('leftNumSectorsInput');
+  const leftBlackAngleInput = document.getElementById('leftBlackAngleInput');
+  const leftSpaceAngleInput = document.getElementById('leftSpaceAngleInput');
+  const leftNumSectorsValueSpan = document.getElementById('leftNumSectorsValue');
+  const leftBlackAngleValueSpan = document.getElementById('leftBlackAngleValue');
+  const leftSpaceAngleValueSpan = document.getElementById('leftSpaceAngleValue');
+
+  // Get Right Door Setting control elements
+  const rightNumSectorsInput = document.getElementById('rightNumSectorsInput');
+  const rightBlackAngleInput = document.getElementById('rightBlackAngleInput');
+  const rightSpaceAngleInput = document.getElementById('rightSpaceAngleInput');
+  const rightNumSectorsValueSpan = document.getElementById('rightNumSectorsValue');
+  const rightBlackAngleValueSpan = document.getElementById('rightBlackAngleValue');
+  const rightSpaceAngleValueSpan = document.getElementById('rightSpaceAngleValue');
 
 
   // --- Draw Flower --- (Fixed position)
@@ -116,18 +143,26 @@
   let innerHeightCm = 20;
   let vpOffsetYCm = 5;
 
-  // State variables - Door Settings
-  let numBlackSectors = 19;
-  let blackSectorDeg = 3;
-  let spaceSectorDeg = 2;
-
-  // Calculated dimensions (will be updated in updateAndRedraw)
+  // Calculated global dimensions (will be updated in updateAndRedraw)
   let doorWidthCm, doorHeightCm, doorWidthPx, doorHeightPx, vpOffsetYPx;
-  let blackSectorRad, spaceSectorRad;
 
-  // --- Door States ---
-  let leftDoorState = { x: 0, y: 0 };
-  let rightDoorState = { x: 0, y: 0 };
+  // --- Door States (Position and Settings) ---
+  let leftDoorState = {
+    x: 0, y: 0,
+    numBlackSectors: 19,
+    blackSectorDeg: 3,
+    spaceSectorDeg: 2,
+    blackSectorRad: 0, // Calculated
+    spaceSectorRad: 0  // Calculated
+  };
+  let rightDoorState = {
+    x: 0, y: 0,
+    numBlackSectors: 19,
+    blackSectorDeg: 3,
+    spaceSectorDeg: 2,
+    blackSectorRad: 0, // Calculated
+    spaceSectorRad: 0  // Calculated
+  };
 
   // --- Drag State ---
   let isDragging = false;
@@ -141,29 +176,44 @@
     innerHeightCm = parseFloat(innerHeightInput.value);
     vpOffsetYCm = parseFloat(vpOffsetInput.value);
 
-    // Read door settings values from inputs
-    numBlackSectors = parseInt(numSectorsInput.value);
-    blackSectorDeg = parseFloat(blackAngleInput.value);
-    spaceSectorDeg = parseFloat(spaceAngleInput.value);
+    // Read left door settings values from inputs
+    leftDoorState.numBlackSectors = parseInt(leftNumSectorsInput.value);
+    leftDoorState.blackSectorDeg = parseFloat(leftBlackAngleInput.value);
+    leftDoorState.spaceSectorDeg = parseFloat(leftSpaceAngleInput.value);
+
+    // Read right door settings values from inputs
+    rightDoorState.numBlackSectors = parseInt(rightNumSectorsInput.value);
+    rightDoorState.blackSectorDeg = parseFloat(rightBlackAngleInput.value);
+    rightDoorState.spaceSectorDeg = parseFloat(rightSpaceAngleInput.value);
 
     // Update display spans
     innerWidthValueSpan.textContent = innerWidthCm;
     innerHeightValueSpan.textContent = innerHeightCm;
     vpOffsetValueSpan.textContent = vpOffsetYCm;
-    numSectorsValueSpan.textContent = numBlackSectors;
-    blackAngleValueSpan.textContent = blackSectorDeg.toFixed(1);
-    spaceAngleValueSpan.textContent = spaceSectorDeg.toFixed(1);
+    // Left
+    leftNumSectorsValueSpan.textContent = leftDoorState.numBlackSectors;
+    leftBlackAngleValueSpan.textContent = leftDoorState.blackSectorDeg.toFixed(1);
+    leftSpaceAngleValueSpan.textContent = leftDoorState.spaceSectorDeg.toFixed(1);
+    // Right
+    rightNumSectorsValueSpan.textContent = rightDoorState.numBlackSectors;
+    rightBlackAngleValueSpan.textContent = rightDoorState.blackSectorDeg.toFixed(1);
+    rightSpaceAngleValueSpan.textContent = rightDoorState.spaceSectorDeg.toFixed(1);
 
     // Recalculate total door dimensions based on inner dimensions + border
     doorWidthCm = innerWidthCm + (borderWidthCm * 2);
     doorHeightCm = innerHeightCm + (borderWidthCm * 2);
 
-    // Recalculate pixel values
+    // Recalculate global pixel values
     doorWidthPx = doorWidthCm * scale;
     doorHeightPx = doorHeightCm * scale;
     vpOffsetYPx = vpOffsetYCm * scale;
-    blackSectorRad = blackSectorDeg * Math.PI / 180;
-    spaceSectorRad = spaceSectorDeg * Math.PI / 180;
+
+    // Recalculate door-specific pixel values (radians)
+    leftDoorState.blackSectorRad = leftDoorState.blackSectorDeg * Math.PI / 180;
+    leftDoorState.spaceSectorRad = leftDoorState.spaceSectorDeg * Math.PI / 180;
+    rightDoorState.blackSectorRad = rightDoorState.blackSectorDeg * Math.PI / 180;
+    rightDoorState.spaceSectorRad = rightDoorState.spaceSectorDeg * Math.PI / 180;
+
 
     // Recalculate door positions ONLY if not currently dragging
     if (!isDragging) {
@@ -171,22 +221,23 @@
       const startX = (canvas.width - totalCombinedWidth) / 2;
       const centeredY = (canvas.height - doorHeightPx) / 2;
 
-      leftDoorState.x = Math.max(0, startX); // Ensure it starts within bounds if canvas too small
+      leftDoorState.x = Math.max(0, startX);
       leftDoorState.y = centeredY;
-      rightDoorState.x = Math.min(canvas.width - doorWidthPx, leftDoorState.x + doorWidthPx);
+      rightDoorState.x = leftDoorState.x + doorWidthPx; // Keep adjacent initially
       rightDoorState.y = centeredY;
+       // Ensure right door starts within bounds too if canvas is narrow
+      rightDoorState.x = Math.min(rightDoorState.x, canvas.width - doorWidthPx);
+       // Adjust left door if right door hit the edge
+      leftDoorState.x = Math.max(0, rightDoorState.x - doorWidthPx);
+
+
     }
-    // If dragging, the position is handled by mousemove, but ensure Y is updated if height changes
+    // If dragging, update Y position if height changed
     else {
         const centeredY = (canvas.height - doorHeightPx) / 2;
         leftDoorState.y = centeredY;
         rightDoorState.y = centeredY;
-        // Keep doors adjacent if dimensions changed during drag (might cause slight jump)
-        if (activeDraggedDoor === 'left') {
-            rightDoorState.x = leftDoorState.x + doorWidthPx;
-        } else if (activeDraggedDoor === 'right') {
-            leftDoorState.x = rightDoorState.x - doorWidthPx;
-        }
+        // Position updated by mousemove
     }
 
     redraw(); // Redraw with new dimensions/settings/positions
@@ -195,10 +246,11 @@
 
   // --- Draw Single Door and VP ---
   function drawDoor(doorState) {
-    const { x, y } = doorState;
+    const { x, y, numBlackSectors, blackSectorRad, spaceSectorRad } = doorState; // Use settings from state
     // --- Calculations ---
-    const innerWidthPx = innerWidthCm * scale;
-    const innerHeightPx = innerHeightCm * scale;
+    // Calculate inner dimensions directly from global door dimensions and border
+    const innerWidthPx = doorWidthPx - (borderWidthPx * 2);
+    const innerHeightPx = doorHeightPx - (borderWidthPx * 2);
     const innerRectX = x + borderWidthPx;
     const innerRectY = y + borderWidthPx;
     const vpCenterX = x + doorWidthPx / 2;
@@ -260,12 +312,12 @@
     drawDoor(rightDoorState);
   }
 
-  // --- Mouse Event Handlers ---
+  // --- Mouse Event Handlers --- (No changes needed here for settings)
   canvas.addEventListener('mousedown', (e) => {
     const mouseX = e.offsetX;
     const mouseY = e.offsetY;
 
-    // Check left door first
+    // Check left door first (higher z-index visually if overlapping)
     if (mouseX >= leftDoorState.x && mouseX <= leftDoorState.x + doorWidthPx &&
         mouseY >= leftDoorState.y && mouseY <= leftDoorState.y + doorHeightPx) {
       isDragging = true;
@@ -293,9 +345,12 @@
     if (activeDraggedDoor === 'left') {
         // Clamp only to canvas left edge
         newX = Math.max(0, newX);
+        // Allow overlap
+        newX = Math.min(newX, canvas.width - doorWidthPx); // Clamp to right edge too
         leftDoorState.x = newX;
     } else { // activeDraggedDoor === 'right'
-        // Clamp only to canvas right edge
+        // Clamp only to canvas edges
+        newX = Math.max(0, newX); // Clamp to left edge
         newX = Math.min(newX, canvas.width - doorWidthPx);
         rightDoorState.x = newX;
     }
@@ -319,10 +374,14 @@
   innerWidthInput.addEventListener('input', updateAndRedraw);
   innerHeightInput.addEventListener('input', updateAndRedraw);
   vpOffsetInput.addEventListener('input', updateAndRedraw);
-  // Door Settings
-  numSectorsInput.addEventListener('input', updateAndRedraw);
-  blackAngleInput.addEventListener('input', updateAndRedraw);
-  spaceAngleInput.addEventListener('input', updateAndRedraw);
+  // Left Door Settings
+  leftNumSectorsInput.addEventListener('input', updateAndRedraw);
+  leftBlackAngleInput.addEventListener('input', updateAndRedraw);
+  leftSpaceAngleInput.addEventListener('input', updateAndRedraw);
+  // Right Door Settings
+  rightNumSectorsInput.addEventListener('input', updateAndRedraw);
+  rightBlackAngleInput.addEventListener('input', updateAndRedraw);
+  rightSpaceAngleInput.addEventListener('input', updateAndRedraw);
 
 
   // --- Initial Setup ---
