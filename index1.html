@@ -3,17 +3,50 @@
 <head>
 <title>Canvas Door</title>
 <style>
-  body { margin: 0; overflow: hidden; background-color: #f0f0f0; }
-  canvas { border: 1px solid black; }
+  body { margin: 0; overflow: hidden; background-color: #f0f0f0; font-family: sans-serif;}
+  canvas { border: 1px solid black; display: block; margin-top: 10px;}
+  .controls { padding: 10px; background-color: #eee; border: 1px solid #ccc; margin-bottom: 10px; }
+  .controls legend { font-weight: bold; margin-bottom: 5px; }
+  .controls div { margin-bottom: 5px; }
+  .controls label { display: inline-block; min-width: 150px; margin-right: 5px;}
+  .controls input { width: 60px; margin-right: 5px;}
 </style>
 </head>
 <body>
 
-<canvas id="doorCanvas" width="800" height="300"></canvas>
+<fieldset class="controls">
+  <legend>Global Settings</legend>
+  <div>
+    <label for="innerWidthInput">Inner Width (cm):</label>
+    <input type="number" id="innerWidthInput" value="40" min="10" max="100" step="1">
+    <span id="innerWidthValue">40</span> cm
+  </div>
+  <div>
+    <label for="innerHeightInput">Inner Height (cm):</label>
+    <input type="number" id="innerHeightInput" value="20" min="10" max="60" step="1">
+    <span id="innerHeightValue">20</span> cm
+  </div>
+    <div>
+    <label for="vpOffsetInput">VP Offset Y (cm):</label>
+    <input type="number" id="vpOffsetInput" value="5" min="0" max="20" step="1">
+    <span id="vpOffsetValue">5</span> cm
+  </div>
+</fieldset>
+
+<canvas id="doorCanvas" width="800" height="400"></canvas>
 
 <script>
   const canvas = document.getElementById('doorCanvas');
   const ctx = canvas.getContext('2d');
+
+  // Get control elements
+  const innerWidthInput = document.getElementById('innerWidthInput');
+  const innerHeightInput = document.getElementById('innerHeightInput');
+  const vpOffsetInput = document.getElementById('vpOffsetInput');
+  const innerWidthValueSpan = document.getElementById('innerWidthValue');
+  const innerHeightValueSpan = document.getElementById('innerHeightValue');
+  const vpOffsetValueSpan = document.getElementById('vpOffsetValue');
+
 
   // --- Draw Flower --- (Fixed position)
   function drawFlower(x, y) {
@@ -38,49 +71,85 @@
     }
   }
 
-  const flowerX = canvas.width / 2; // Centered flower in the wider canvas
+  const flowerX = canvas.width / 2; // Centered flower
   const flowerY = canvas.height / 2;
 
-  // --- Door Properties ---
+  // --- Door Properties (Constants and Dynamic State) ---
   const scale = 5; // 5 pixels per cm
-  const doorWidthCm = 44; // Changed from 40 to make inner width 40cm
-  const doorHeightCm = 24; // Changed from 20 to make inner height 20cm
   const borderWidthCm = 2;
-
-  const doorWidthPx = doorWidthCm * scale; // 200px
-  const doorHeightPx = doorHeightCm * scale; // 100px
   const borderWidthPx = borderWidthCm * scale; // 10px
+  const vpRadiusCm = 1;
+  const vpRadiusPx = vpRadiusCm * scale; // 5px
 
-  // --- Door State ---
-  let doorX = (canvas.width - doorWidthPx) / 2; // Initial X position (centered)
-  const doorY = (canvas.height - doorHeightPx) / 2; // Fixed Y position (centered)
+  // State variables that will be updated from controls
+  let innerWidthCm = 40;
+  let innerHeightCm = 20;
+  let vpOffsetYCm = 5;
+
+  // Calculated dimensions (will be updated in updateDimensions)
+  let doorWidthCm, doorHeightCm, doorWidthPx, doorHeightPx, vpOffsetYPx;
+
+  // --- Door Drag State ---
+  let doorX; // Initial position calculated in updateDimensions
+  let doorY; // Position calculated in updateDimensions
   let isDragging = false;
   let dragOffsetX = 0;
 
+  // --- Update Dimensions from Inputs ---
+  function updateDimensionsFromInputs() {
+    // Read values from inputs
+    innerWidthCm = parseFloat(innerWidthInput.value);
+    innerHeightCm = parseFloat(innerHeightInput.value);
+    vpOffsetYCm = parseFloat(vpOffsetInput.value);
+
+    // Update display spans
+    innerWidthValueSpan.textContent = innerWidthCm;
+    innerHeightValueSpan.textContent = innerHeightCm;
+    vpOffsetValueSpan.textContent = vpOffsetYCm;
+
+    // Recalculate total door dimensions based on inner dimensions + border
+    doorWidthCm = innerWidthCm + (borderWidthCm * 2);
+    doorHeightCm = innerHeightCm + (borderWidthCm * 2);
+
+    // Recalculate pixel values
+    doorWidthPx = doorWidthCm * scale;
+    doorHeightPx = doorHeightCm * scale;
+    vpOffsetYPx = vpOffsetYCm * scale;
+
+    // Recalculate door's centered position (needed if dimensions change)
+    // Don't change doorX if dragging, only recalculate Y and initial X
+    if (!isDragging) {
+        doorX = (canvas.width - doorWidthPx) / 2;
+    }
+    doorY = (canvas.height - doorHeightPx) / 2;
+
+    // Keep door within bounds if dimensions change drastically
+    doorX = Math.max(0, doorX);
+    doorX = Math.min(canvas.width - doorWidthPx, doorX);
+
+    redraw(); // Redraw with new dimensions
+  }
+
+
   // --- Draw Door and VP ---
   function drawDoor(x, y) {
-    // 1. Draw the border
+    // 1. Draw the border (using total dimensions)
     ctx.strokeStyle = 'black';
     ctx.lineWidth = borderWidthPx;
     ctx.strokeRect(
       x + borderWidthPx / 2,
       y + borderWidthPx / 2,
-      doorWidthPx - borderWidthPx,
-      doorHeightPx - borderWidthPx
+      doorWidthPx - borderWidthPx, // Inner width in pixels
+      doorHeightPx - borderWidthPx  // Inner height in pixels
     );
 
     // 2. Draw the VP circle
-    const vpRadiusCm = 1;
-    const vpRadiusPx = vpRadiusCm * scale; // 5px now
-    const vpOffsetYCm = 5;
-    const vpOffsetYPx = vpOffsetYCm * scale; // 25px
-
-    // Calculate VP center coordinates
-    const vpCenterX = x + doorWidthPx / 2; // Horizontal middle of the door
-    const vpCenterY = y + doorHeightPx + vpOffsetYPx; // Below the bottom edge of the door
+    // Calculate VP center coordinates based on current door pos and total height
+    const vpCenterX = x + doorWidthPx / 2;
+    const vpCenterY = y + doorHeightPx + vpOffsetYPx;
 
     // Draw the circle
-    ctx.fillStyle = 'blue'; // Let's give it a color for visibility
+    ctx.fillStyle = 'blue';
     ctx.beginPath();
     ctx.arc(vpCenterX, vpCenterY, vpRadiusPx, 0, Math.PI * 2);
     ctx.fill();
@@ -91,10 +160,10 @@
     // Clear canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Draw flower (always in the same spot)
+    // Draw flower
     drawFlower(flowerX, flowerY);
 
-    // Draw door (at current position)
+    // Draw door (at current position x, y using current dimensions)
     drawDoor(doorX, doorY);
   }
 
@@ -103,11 +172,12 @@
     const mouseX = e.offsetX;
     const mouseY = e.offsetY;
 
-    // Check if click is within the door bounds
+    // Check if click is within the door bounds (using current dimensions)
     if (mouseX >= doorX && mouseX <= doorX + doorWidthPx &&
         mouseY >= doorY && mouseY <= doorY + doorHeightPx) {
       isDragging = true;
       dragOffsetX = mouseX - doorX;
+      canvas.style.cursor = 'grabbing'; // Change cursor while dragging
     }
   });
 
@@ -115,31 +185,38 @@
     if (!isDragging) return;
 
     const mouseX = e.offsetX;
-    // Update doorX based on mouse movement, keeping it within canvas bounds
     let newDoorX = mouseX - dragOffsetX;
-    newDoorX = Math.max(0, newDoorX); // Prevent moving past left edge
-    newDoorX = Math.min(canvas.width - doorWidthPx, newDoorX); // Prevent moving past right edge
+    // Ensure door stays within canvas bounds (using current width)
+    newDoorX = Math.max(0, newDoorX);
+    newDoorX = Math.min(canvas.width - doorWidthPx, newDoorX);
     doorX = newDoorX;
 
     redraw();
   });
 
-  canvas.addEventListener('mouseup', () => {
-    if (isDragging) {
+  // Combined mouseup and mouseleave logic
+  const stopDragging = () => {
+     if (isDragging) {
        isDragging = false;
-       redraw(); // Redraw in final position
+       canvas.style.cursor = 'grab'; // Restore cursor
+       // Recalculate door center X if needed after drag finishes and dimensions changed
+       // updateDimensionsFromInputs(); // Call this to potentially recenter if needed? Or just redraw? Let's just redraw.
+       redraw();
     }
-  });
+  };
 
-  canvas.addEventListener('mouseleave', () => {
-    if (isDragging) {
-       isDragging = false;
-       redraw(); // Redraw in final position if mouse leaves while dragging
-    }
-  });
+  canvas.addEventListener('mouseup', stopDragging);
+  canvas.addEventListener('mouseleave', stopDragging);
 
-  // Initial Draw
-  redraw();
+  // --- Input Event Listeners ---
+  innerWidthInput.addEventListener('input', updateDimensionsFromInputs);
+  innerHeightInput.addEventListener('input', updateDimensionsFromInputs);
+  vpOffsetInput.addEventListener('input', updateDimensionsFromInputs);
+
+  // --- Initial Setup ---
+  updateDimensionsFromInputs(); // Calculate initial dimensions and draw
+  canvas.style.cursor = 'grab'; // Set initial cursor
+
 
 </script>
 
