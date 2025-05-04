@@ -11,68 +11,83 @@
   .controls label { display: inline-block; min-width: 150px; margin-right: 5px; text-align: right; }
   .controls input { width: 60px; margin-right: 5px;}
   .controls span { display: inline-block; min-width: 25px; text-align: right;}
+
+  .settings-container {
+    display: flex;
+    flex-direction: row; /* Arrange items horizontally */
+    flex-wrap: wrap; /* Allow wrapping if needed */
+    gap: 15px; /* Add space between fieldsets */
+    margin-bottom: 10px; /* Space below the container */
+  }
+  .settings-container .controls {
+      margin-bottom: 0; /* Remove bottom margin from individual fieldsets */
+      flex: 1; /* Allow fieldsets to grow */
+      min-width: 250px; /* Prevent them from becoming too narrow */
+  }
 </style>
 </head>
 <body>
 
-<fieldset class="controls">
-  <legend>Global Settings</legend>
-  <div>
-    <label for="innerWidthInput">Inner Width (cm):</label>
-    <input type="number" id="innerWidthInput" value="40" min="10" max="100" step="1">
-    <span id="innerWidthValue">40</span> cm
-  </div>
-  <div>
-    <label for="innerHeightInput">Inner Height (cm):</label>
-    <input type="number" id="innerHeightInput" value="20" min="10" max="60" step="1">
-    <span id="innerHeightValue">20</span> cm
-  </div>
-    <div>
-    <label for="vpOffsetInput">VP Offset Y (cm):</label>
-    <input type="number" id="vpOffsetInput" value="5" min="0" max="20" step="1">
-    <span id="vpOffsetValue">5</span> cm
-  </div>
-</fieldset>
+<div class="settings-container">
+    <fieldset class="controls">
+      <legend>Global Settings</legend>
+      <div>
+        <label for="innerWidthInput">Inner Width (cm):</label>
+        <input type="number" id="innerWidthInput" value="40" min="10" max="100" step="1">
+        <span id="innerWidthValue">40</span> cm
+      </div>
+      <div>
+        <label for="innerHeightInput">Inner Height (cm):</label>
+        <input type="number" id="innerHeightInput" value="20" min="10" max="60" step="1">
+        <span id="innerHeightValue">20</span> cm
+      </div>
+      <div>
+        <label for="vpOffsetInput">VP Offset Y (cm):</label>
+        <input type="number" id="vpOffsetInput" value="5" min="0" max="20" step="1">
+        <span id="vpOffsetValue">5</span> cm
+      </div>
+    </fieldset>
 
-<fieldset class="controls">
-    <legend>Left Door Settings</legend>
-    <div>
-        <label for="leftNumSectorsInput">Num Black Sectors:</label>
-        <input type="number" id="leftNumSectorsInput" value="19" min="1" max="50" step="1">
-        <span id="leftNumSectorsValue">19</span>
-    </div>
-    <div>
-        <label for="leftBlackAngleInput">Black Sector Angle:</label>
-        <input type="number" id="leftBlackAngleInput" value="3" min="0.1" max="45" step="0.1">
-        <span id="leftBlackAngleValue">3.0</span> deg
-    </div>
-    <div>
-        <label for="leftSpaceAngleInput">Space Angle:</label>
-        <input type="number" id="leftSpaceAngleInput" value="2" min="0" max="45" step="0.1">
-        <span id="leftSpaceAngleValue">2.0</span> deg
-    </div>
-</fieldset>
+    <fieldset class="controls">
+        <legend>Left Door Settings</legend>
+        <div>
+            <label for="leftNumSectorsInput">Num Black Sectors:</label>
+            <input type="number" id="leftNumSectorsInput" value="19" min="1" max="50" step="1">
+            <span id="leftNumSectorsValue">19</span>
+        </div>
+        <div>
+            <label for="leftBlackAngleInput">Black Sector Angle:</label>
+            <input type="number" id="leftBlackAngleInput" value="3" min="0.1" max="45" step="0.1">
+            <span id="leftBlackAngleValue">3.0</span> deg
+        </div>
+        <div>
+            <label for="leftSpaceAngleInput">Space Angle:</label>
+            <input type="number" id="leftSpaceAngleInput" value="2" min="0" max="45" step="0.1">
+            <span id="leftSpaceAngleValue">2.0</span> deg
+        </div>
+    </fieldset>
 
-<fieldset class="controls">
-    <legend>Right Door Settings</legend>
-    <div>
-        <label for="rightNumSectorsInput">Num Black Sectors:</label>
-        <input type="number" id="rightNumSectorsInput" value="19" min="1" max="50" step="1">
-        <span id="rightNumSectorsValue">19</span>
-    </div>
-    <div>
-        <label for="rightBlackAngleInput">Black Sector Angle:</label>
-        <input type="number" id="rightBlackAngleInput" value="3" min="0.1" max="45" step="0.1">
-        <span id="rightBlackAngleValue">3.0</span> deg
-    </div>
-    <div>
-        <label for="rightSpaceAngleInput">Space Angle:</label>
-        <input type="number" id="rightSpaceAngleInput" value="2" min="0" max="45" step="0.1">
-        <span id="rightSpaceAngleValue">2.0</span> deg
-    </div>
-</fieldset>
+    <fieldset class="controls">
+        <legend>Right Door Settings</legend>
+        <div>
+            <label for="rightNumSectorsInput">Num Black Sectors:</label>
+            <input type="number" id="rightNumSectorsInput" value="19" min="1" max="50" step="1">
+            <span id="rightNumSectorsValue">19</span>
+        </div>
+        <div>
+            <label for="rightBlackAngleInput">Black Sector Angle:</label>
+            <input type="number" id="rightBlackAngleInput" value="3" min="0.1" max="45" step="0.1">
+            <span id="rightBlackAngleValue">3.0</span> deg
+        </div>
+        <div>
+            <label for="rightSpaceAngleInput">Space Angle:</label>
+            <input type="number" id="rightSpaceAngleInput" value="2" min="0" max="45" step="0.1">
+            <span id="rightSpaceAngleValue">2.0</span> deg
+        </div>
+    </fieldset>
+</div>
 
-<canvas id="doorCanvas" width="800" height="400"></canvas>
+<canvas id="doorCanvas" width="100" height="50"></canvas>
 
 <script>
   const canvas = document.getElementById('doorCanvas');
@@ -102,37 +117,10 @@
   const rightBlackAngleValueSpan = document.getElementById('rightBlackAngleValue');
   const rightSpaceAngleValueSpan = document.getElementById('rightSpaceAngleValue');
 
-
-  // --- Draw Flower --- (Fixed position)
-  function drawFlower(x, y) {
-    // Center (yellow)
-    ctx.fillStyle = 'yellow';
-    ctx.beginPath();
-    ctx.arc(x, y, 15, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Petals (red)
-    ctx.fillStyle = 'red';
-    const petalLength = 30;
-    const petalWidth = 10;
-    for (let i = 0; i < 6; i++) {
-      ctx.save();
-      ctx.translate(x, y);
-      ctx.rotate((Math.PI / 3) * i);
-      ctx.beginPath();
-      ctx.ellipse(0, -petalLength / 2 - 10, petalWidth, petalLength, 0, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
-    }
-  }
-
-  const flowerX = canvas.width / 2; // Centered flower
-  const flowerY = canvas.height / 2;
-
   // --- Door Properties (Constants and Dynamic State) ---
-  const scale = 5; // 5 pixels per cm
+  const scale = 15; // Increased scale again (pixels per cm)
   const borderWidthCm = 2;
-  const borderWidthPx = borderWidthCm * scale; // 10px
+  const borderWidthPx = borderWidthCm * scale; // Auto-updates
   const vpRadiusCm = 1;
   const vpRadiusPx = vpRadiusCm * scale; // 5px
   const sectorRadiusCm = 37;
@@ -214,30 +202,40 @@
     rightDoorState.blackSectorRad = rightDoorState.blackSectorDeg * Math.PI / 180;
     rightDoorState.spaceSectorRad = rightDoorState.spaceSectorDeg * Math.PI / 180;
 
+    // --- Dynamic Canvas Resizing ---
+    const targetCanvasWidth = doorWidthPx * 2;
+    const targetCanvasHeight = targetCanvasWidth / 2; // Maintain 2:1 aspect ratio
+
+    if (canvas.width !== targetCanvasWidth || canvas.height !== targetCanvasHeight) {
+        console.log(`Resizing canvas: DoorWidthPx=${doorWidthPx.toFixed(1)}, TargetCanvasWidth=${targetCanvasWidth.toFixed(1)}`); // Added Log
+        canvas.width = targetCanvasWidth;
+        canvas.height = targetCanvasHeight;
+    }
+    // --- End Resizing ---
 
     // Recalculate door positions ONLY if not currently dragging
     if (!isDragging) {
-      const totalCombinedWidth = doorWidthPx * 2;
-      const startX = (canvas.width - totalCombinedWidth) / 2;
+      // When canvas width is exactly 2*doorWidth, doors start at the edges
+      leftDoorState.x = 0;
+      rightDoorState.x = doorWidthPx;
+      // Keep Y centered
       const centeredY = (canvas.height - doorHeightPx) / 2;
-
-      leftDoorState.x = Math.max(0, startX);
       leftDoorState.y = centeredY;
-      rightDoorState.x = leftDoorState.x + doorWidthPx; // Keep adjacent initially
       rightDoorState.y = centeredY;
-       // Ensure right door starts within bounds too if canvas is narrow
-      rightDoorState.x = Math.min(rightDoorState.x, canvas.width - doorWidthPx);
-       // Adjust left door if right door hit the edge
-      leftDoorState.x = Math.max(0, rightDoorState.x - doorWidthPx);
-
-
     }
     // If dragging, update Y position if height changed
     else {
         const centeredY = (canvas.height - doorHeightPx) / 2;
         leftDoorState.y = centeredY;
         rightDoorState.y = centeredY;
-        // Position updated by mousemove
+        // Ensure dragged door stays within new bounds after resize
+        if (activeDraggedDoor === 'left') {
+            leftDoorState.x = Math.max(0, leftDoorState.x);
+            leftDoorState.x = Math.min(leftDoorState.x, canvas.width - doorWidthPx);
+        } else if (activeDraggedDoor === 'right') {
+            rightDoorState.x = Math.max(0, rightDoorState.x);
+            rightDoorState.x = Math.min(rightDoorState.x, canvas.width - doorWidthPx);
+        }
     }
 
     redraw(); // Redraw with new dimensions/settings/positions
@@ -306,7 +304,6 @@
   // --- Redraw Canvas ---
   function redraw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    drawFlower(flowerX, flowerY);
     // Draw both doors using their state
     drawDoor(leftDoorState);
     drawDoor(rightDoorState);
