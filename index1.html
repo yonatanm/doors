@@ -133,22 +133,72 @@
 
   // --- Draw Door and VP ---
   function drawDoor(x, y) {
+    // --- Calculations ---
+    const innerWidthPx = innerWidthCm * scale;
+    const innerHeightPx = innerHeightCm * scale;
+    // Inner rectangle top-left corner
+    const innerRectX = x + borderWidthPx;
+    const innerRectY = y + borderWidthPx;
+    // VP center coordinates
+    const vpCenterX = x + doorWidthPx / 2;
+    const vpCenterY = y + doorHeightPx + vpOffsetYPx;
+    const radiusPx = 37 * scale;
+    const blackDeg = 3;
+    const transDeg = 2;
+    const blackRad = blackDeg * Math.PI / 180;
+    const stepRad = (blackDeg + transDeg) * Math.PI / 180;
+
+    // --- Drawing ---
+
     // 1. Draw the border (using total dimensions)
     ctx.strokeStyle = 'black';
     ctx.lineWidth = borderWidthPx;
     ctx.strokeRect(
       x + borderWidthPx / 2,
       y + borderWidthPx / 2,
-      doorWidthPx - borderWidthPx, // Inner width in pixels
-      doorHeightPx - borderWidthPx  // Inner height in pixels
+      doorWidthPx - borderWidthPx, // This is actually innerWidthPx
+      doorHeightPx - borderWidthPx  // This is actually innerHeightPx
     );
 
-    // 2. Draw the VP circle
-    // Calculate VP center coordinates based on current door pos and total height
-    const vpCenterX = x + doorWidthPx / 2;
-    const vpCenterY = y + doorHeightPx + vpOffsetYPx;
+    // 2. Draw Sectors inside the inner bounds
+    ctx.save(); // Save context before clipping
 
-    // Draw the circle
+    // Set clipping path to inner rectangle
+    ctx.beginPath();
+    ctx.rect(innerRectX, innerRectY, innerWidthPx, innerHeightPx);
+    ctx.clip();
+
+    // Calculate angles from VP to top-inner corners
+    // atan2(y, x) -> angle from positive x-axis, counter-clockwise
+    const angleLeft = Math.atan2(innerRectY - vpCenterY, innerRectX - vpCenterX);
+    const angleRight = Math.atan2(innerRectY - vpCenterY, (innerRectX + innerWidthPx) - vpCenterX);
+
+    // Draw the sectors
+    ctx.fillStyle = 'black';
+    let currentStartAngle = angleLeft;
+    while (currentStartAngle < angleRight) {
+        let currentEndAngle = currentStartAngle + blackRad;
+        // Don't let the final sector overshoot the calculated right angle
+        if (currentEndAngle > angleRight) {
+            currentEndAngle = angleRight;
+        }
+
+        if (currentEndAngle > currentStartAngle) { // Ensure angle has width
+            ctx.beginPath();
+            ctx.moveTo(vpCenterX, vpCenterY);
+            // arc(x, y, radius, startAngle, endAngle, anticlockwise)
+            ctx.arc(vpCenterX, vpCenterY, radiusPx, currentStartAngle, currentEndAngle);
+            ctx.closePath();
+            ctx.fill();
+        }
+
+        // Move to the start of the next black sector
+        currentStartAngle += stepRad;
+    }
+
+    ctx.restore(); // Restore context to remove clipping
+
+    // 3. Draw the VP circle (after restoring context)
     ctx.fillStyle = 'blue';
     ctx.beginPath();
     ctx.arc(vpCenterX, vpCenterY, vpRadiusPx, 0, Math.PI * 2);
