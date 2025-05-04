@@ -268,11 +268,11 @@
       doorHeightPx - borderWidthPx // Corrected path height
     );
 
-    // --- Red outline for debugging outer bounds ---
-    ctx.strokeStyle = 'red';
-    ctx.lineWidth = 1; // Thin line
-    ctx.strokeRect(x, y, doorWidthPx, doorHeightPx);
-    // ----------------------------------------------
+    // --- Red outline removed ---
+    // ctx.strokeStyle = 'red';
+    // ctx.lineWidth = 1; // Thin line
+    // ctx.strokeRect(x, y, doorWidthPx, doorHeightPx);
+    // ---------------------------
 
     // 2. Draw Sectors inside the inner bounds
     ctx.save(); // Save context before clipping
@@ -316,62 +316,105 @@
     drawDoor(rightDoorState);
   }
 
-  // --- Mouse Event Handlers --- (No changes needed here for settings)
-  canvas.addEventListener('mousedown', (e) => {
-    const mouseX = e.offsetX;
-    const mouseY = e.offsetY;
+  // --- Helper to get touch position relative to canvas ---
+  function getTouchPos(canvasDom, touchEvent) {
+    const rect = canvasDom.getBoundingClientRect();
+    return {
+      x: touchEvent.touches[0].clientX - rect.left,
+      y: touchEvent.touches[0].clientY - rect.top
+    };
+  }
 
-    // Check left door first (higher z-index visually if overlapping)
-    if (mouseX >= leftDoorState.x && mouseX <= leftDoorState.x + doorWidthPx &&
-        mouseY >= leftDoorState.y && mouseY <= leftDoorState.y + doorHeightPx) {
+  // --- Event Handlers (Common Logic) ---
+  let startDragX, startDragY;
+
+  function handleDragStart(offsetX, offsetY) {
+    startDragX = offsetX;
+    startDragY = offsetY;
+
+    // Check left door first
+    if (startDragX >= leftDoorState.x && startDragX <= leftDoorState.x + doorWidthPx &&
+        startDragY >= leftDoorState.y && startDragY <= leftDoorState.y + doorHeightPx) {
       isDragging = true;
       activeDraggedDoor = 'left';
-      dragOffsetX = mouseX - leftDoorState.x;
+      dragOffsetX = startDragX - leftDoorState.x;
       canvas.style.cursor = 'grabbing';
+      return true; // Indicate drag started
     }
     // Check right door if left not hit
-    else if (mouseX >= rightDoorState.x && mouseX <= rightDoorState.x + doorWidthPx &&
-             mouseY >= rightDoorState.y && mouseY <= rightDoorState.y + doorHeightPx) {
+    else if (startDragX >= rightDoorState.x && startDragX <= rightDoorState.x + doorWidthPx &&
+             startDragY >= rightDoorState.y && startDragY <= rightDoorState.y + doorHeightPx) {
        isDragging = true;
        activeDraggedDoor = 'right';
-       dragOffsetX = mouseX - rightDoorState.x;
+       dragOffsetX = startDragX - rightDoorState.x;
        canvas.style.cursor = 'grabbing';
+       return true; // Indicate drag started
     }
+    return false; // Drag did not start on a door
+  }
+
+  function handleDragMove(offsetX, offsetY) {
+      if (!isDragging || !activeDraggedDoor) return;
+
+      let newX = offsetX - dragOffsetX;
+
+      // Apply constraints based on which door is dragged
+      if (activeDraggedDoor === 'left') {
+          newX = Math.max(0, newX);
+          newX = Math.min(newX, canvas.width - doorWidthPx);
+          leftDoorState.x = newX;
+      } else { // activeDraggedDoor === 'right'
+          newX = Math.max(0, newX);
+          newX = Math.min(newX, canvas.width - doorWidthPx);
+          rightDoorState.x = newX;
+      }
+      redraw();
+  }
+
+ function handleDragEnd() {
+     if (isDragging) {
+       isDragging = false;
+       activeDraggedDoor = null;
+       canvas.style.cursor = 'grab';
+       redraw();
+    }
+ }
+
+  // --- Mouse Event Listeners ---
+  canvas.addEventListener('mousedown', (e) => {
+    handleDragStart(e.offsetX, e.offsetY);
   });
 
   canvas.addEventListener('mousemove', (e) => {
-    if (!isDragging || !activeDraggedDoor) return;
-
-    const mouseX = e.offsetX;
-    let newX = mouseX - dragOffsetX;
-
-    // Apply constraints based on which door is dragged
-    if (activeDraggedDoor === 'left') {
-        // Clamp only to canvas left edge
-        newX = Math.max(0, newX);
-        // Allow overlap
-        newX = Math.min(newX, canvas.width - doorWidthPx); // Clamp to right edge too
-        leftDoorState.x = newX;
-    } else { // activeDraggedDoor === 'right'
-        // Clamp only to canvas edges
-        newX = Math.max(0, newX); // Clamp to left edge
-        newX = Math.min(newX, canvas.width - doorWidthPx);
-        rightDoorState.x = newX;
-    }
-
-    redraw();
+      handleDragMove(e.offsetX, e.offsetY);
   });
 
-  const stopDragging = () => {
-     if (isDragging) {
-       isDragging = false;
-       activeDraggedDoor = null; // Clear active door
-       canvas.style.cursor = 'grab';
-       redraw(); // Redraw in final position
+  // Use common end handler
+  canvas.addEventListener('mouseup', handleDragEnd);
+  canvas.addEventListener('mouseleave', handleDragEnd); // Handle mouse leaving canvas
+
+  // --- Touch Event Listeners ---
+  canvas.addEventListener('touchstart', (e) => {
+    if (e.touches.length === 1) { // Single touch
+        const touchPos = getTouchPos(canvas, e);
+        if (handleDragStart(touchPos.x, touchPos.y)) {
+            e.preventDefault(); // Prevent scrolling if drag started on a door
+        }
     }
-  };
-  canvas.addEventListener('mouseup', stopDragging);
-  canvas.addEventListener('mouseleave', stopDragging);
+  }, { passive: false }); // Need passive: false to call preventDefault
+
+  canvas.addEventListener('touchmove', (e) => {
+    if (!isDragging) return; // Don't prevent scroll if not dragging
+    e.preventDefault(); // Prevent scrolling while dragging
+    if (e.touches.length === 1) {
+        const touchPos = getTouchPos(canvas, e);
+        handleDragMove(touchPos.x, touchPos.y);
+    }
+  }, { passive: false });
+
+  // Use common end handler
+  canvas.addEventListener('touchend', handleDragEnd);
+  canvas.addEventListener('touchcancel', handleDragEnd);
 
   // --- Input Event Listeners ---
   // Global
