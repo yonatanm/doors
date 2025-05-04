@@ -256,16 +256,23 @@
     // --- Drawing ---
     ctx.save(); // Save context for this door
 
-    // 1. Draw the border by filling outer and clearing inner
-    ctx.fillStyle = 'black';
-    ctx.fillRect(x, y, doorWidthPx, doorHeightPx); // Fill outer area
-    ctx.clearRect(x + borderWidthPx, y + borderWidthPx, innerWidthPx, innerHeightPx); // Clear inner area
+    // 1. Draw the border using strokeRect (leaves inside transparent)
+    ctx.strokeStyle = 'black';
+    ctx.lineWidth = borderWidthPx;
+    // strokeRect centers the line, so draw inset by half the border width
+    // Use dimensions adjusted for the stroke width to align outer edge correctly
+    ctx.strokeRect(
+      x + borderWidthPx / 2,
+      y + borderWidthPx / 2,
+      doorWidthPx - borderWidthPx, // Corrected path width
+      doorHeightPx - borderWidthPx // Corrected path height
+    );
 
-    // --- Red outline removed ---
-    // ctx.strokeStyle = 'red';
-    // ctx.lineWidth = 1; // Thin line
-    // ctx.strokeRect(x, y, doorWidthPx, doorHeightPx);
-    // --------------------------
+    // --- Red outline for debugging outer bounds ---
+    ctx.strokeStyle = 'red';
+    ctx.lineWidth = 1; // Thin line
+    ctx.strokeRect(x, y, doorWidthPx, doorHeightPx);
+    // ----------------------------------------------
 
     // 2. Draw Sectors inside the inner bounds
     ctx.save(); // Save context before clipping
