@@ -9,13 +9,13 @@
 </head>
 <body>
 
-<canvas id="doorCanvas" width="400" height="300"></canvas>
+<canvas id="doorCanvas" width="800" height="300"></canvas>
 
 <script>
   const canvas = document.getElementById('doorCanvas');
   const ctx = canvas.getContext('2d');
 
-  // --- Draw Flower --- (Behind the door)
+  // --- Draw Flower --- (Fixed position)
   function drawFlower(x, y) {
     // Center (yellow)
     ctx.fillStyle = 'yellow';
@@ -38,12 +38,10 @@
     }
   }
 
-  // Draw the flower centered relative to the door position
-  const flowerX = 200;
-  const flowerY = 150;
-  drawFlower(flowerX, flowerY);
+  const flowerX = canvas.width / 2; // Centered flower in the wider canvas
+  const flowerY = canvas.height / 2;
 
-  // --- Draw Door --- (Over the flower)
+  // --- Door Properties ---
   const scale = 5; // 5 pixels per cm
   const doorWidthCm = 40;
   const doorHeightCm = 20;
@@ -53,26 +51,83 @@
   const doorHeightPx = doorHeightCm * scale; // 100px
   const borderWidthPx = borderWidthCm * scale; // 10px
 
-  // Center the door on the canvas
-  const doorX = (canvas.width - doorWidthPx) / 2; // (400 - 200) / 2 = 100
-  const doorY = (canvas.height - doorHeightPx) / 2; // (300 - 100) / 2 = 100
+  // --- Door State ---
+  let doorX = (canvas.width - doorWidthPx) / 2; // Initial X position (centered)
+  const doorY = (canvas.height - doorHeightPx) / 2; // Fixed Y position (centered)
+  let isDragging = false;
+  let dragOffsetX = 0;
 
-  // Draw the border
-  ctx.strokeStyle = 'black';
-  ctx.lineWidth = borderWidthPx;
+  // --- Draw Door ---
+  function drawDoor(x, y) {
+    // Draw the border
+    ctx.strokeStyle = 'black';
+    ctx.lineWidth = borderWidthPx;
+    // strokeRect draws the border *centered* on the path.
+    // To make the *outer* dimensions match doorWidthPx x doorHeightPx,
+    // we draw the rectangle slightly inset by half the border width.
+    ctx.strokeRect(
+      x + borderWidthPx / 2,
+      y + borderWidthPx / 2,
+      doorWidthPx - borderWidthPx,
+      doorHeightPx - borderWidthPx
+    );
+    // Transparent inside (default)
+  }
 
-  // strokeRect draws the border *centered* on the path.
-  // To make the *outer* dimensions match doorWidthPx x doorHeightPx,
-  // we draw the rectangle slightly inset by half the border width.
-  ctx.strokeRect(
-    doorX + borderWidthPx / 2,
-    doorY + borderWidthPx / 2,
-    doorWidthPx - borderWidthPx,
-    doorHeightPx - borderWidthPx
-  );
+  // --- Redraw Canvas ---
+  function redraw() {
+    // Clear canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  // The inside of the strokeRect is transparent by default,
-  // so the flower underneath will show through.
+    // Draw flower (always in the same spot)
+    drawFlower(flowerX, flowerY);
+
+    // Draw door (at current position)
+    drawDoor(doorX, doorY);
+  }
+
+  // --- Mouse Event Handlers ---
+  canvas.addEventListener('mousedown', (e) => {
+    const mouseX = e.offsetX;
+    const mouseY = e.offsetY;
+
+    // Check if click is within the door bounds
+    if (mouseX >= doorX && mouseX <= doorX + doorWidthPx &&
+        mouseY >= doorY && mouseY <= doorY + doorHeightPx) {
+      isDragging = true;
+      dragOffsetX = mouseX - doorX;
+    }
+  });
+
+  canvas.addEventListener('mousemove', (e) => {
+    if (!isDragging) return;
+
+    const mouseX = e.offsetX;
+    // Update doorX based on mouse movement, keeping it within canvas bounds
+    let newDoorX = mouseX - dragOffsetX;
+    newDoorX = Math.max(0, newDoorX); // Prevent moving past left edge
+    newDoorX = Math.min(canvas.width - doorWidthPx, newDoorX); // Prevent moving past right edge
+    doorX = newDoorX;
+
+    redraw();
+  });
+
+  canvas.addEventListener('mouseup', () => {
+    if (isDragging) {
+       isDragging = false;
+       redraw(); // Redraw in final position
+    }
+  });
+
+  canvas.addEventListener('mouseleave', () => {
+    if (isDragging) {
+       isDragging = false;
+       redraw(); // Redraw in final position if mouse leaves while dragging
+    }
+  });
+
+  // Initial Draw
+  redraw();
 
 </script>
 
