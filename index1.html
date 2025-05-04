@@ -125,11 +125,14 @@
   let doorWidthCm, doorHeightCm, doorWidthPx, doorHeightPx, vpOffsetYPx;
   let blackSectorRad, spaceSectorRad;
 
-  // --- Door Drag State ---
-  let doorX; // Initial position calculated in updateAndRedraw
-  let doorY; // Position calculated in updateAndRedraw
+  // --- Door States ---
+  let leftDoorState = { x: 0, y: 0 };
+  let rightDoorState = { x: 0, y: 0 };
+
+  // --- Drag State ---
   let isDragging = false;
   let dragOffsetX = 0;
+  let activeDraggedDoor = null; // 'left' or 'right'
 
   // --- Update State from Inputs & Redraw ---
   function updateAndRedraw() {
@@ -151,7 +154,6 @@
     blackAngleValueSpan.textContent = blackSectorDeg.toFixed(1);
     spaceAngleValueSpan.textContent = spaceSectorDeg.toFixed(1);
 
-
     // Recalculate total door dimensions based on inner dimensions + border
     doorWidthCm = innerWidthCm + (borderWidthCm * 2);
     doorHeightCm = innerHeightCm + (borderWidthCm * 2);
@@ -163,23 +165,37 @@
     blackSectorRad = blackSectorDeg * Math.PI / 180;
     spaceSectorRad = spaceSectorDeg * Math.PI / 180;
 
-    // Recalculate door's centered position (needed if dimensions change)
-    // Don't change doorX if dragging, only recalculate Y and initial X
+    // Recalculate door positions ONLY if not currently dragging
     if (!isDragging) {
-        doorX = (canvas.width - doorWidthPx) / 2;
+      const totalCombinedWidth = doorWidthPx * 2;
+      const startX = (canvas.width - totalCombinedWidth) / 2;
+      const centeredY = (canvas.height - doorHeightPx) / 2;
+
+      leftDoorState.x = Math.max(0, startX); // Ensure it starts within bounds if canvas too small
+      leftDoorState.y = centeredY;
+      rightDoorState.x = Math.min(canvas.width - doorWidthPx, leftDoorState.x + doorWidthPx);
+      rightDoorState.y = centeredY;
     }
-    doorY = (canvas.height - doorHeightPx) / 2;
+    // If dragging, the position is handled by mousemove, but ensure Y is updated if height changes
+    else {
+        const centeredY = (canvas.height - doorHeightPx) / 2;
+        leftDoorState.y = centeredY;
+        rightDoorState.y = centeredY;
+        // Keep doors adjacent if dimensions changed during drag (might cause slight jump)
+        if (activeDraggedDoor === 'left') {
+            rightDoorState.x = leftDoorState.x + doorWidthPx;
+        } else if (activeDraggedDoor === 'right') {
+            leftDoorState.x = rightDoorState.x - doorWidthPx;
+        }
+    }
 
-    // Keep door within bounds if dimensions change drastically
-    doorX = Math.max(0, doorX);
-    doorX = Math.min(canvas.width - doorWidthPx, doorX);
-
-    redraw(); // Redraw with new dimensions/settings
+    redraw(); // Redraw with new dimensions/settings/positions
   }
 
 
-  // --- Draw Door and VP ---
-  function drawDoor(x, y) {
+  // --- Draw Single Door and VP ---
+  function drawDoor(doorState) {
+    const { x, y } = doorState;
     // --- Calculations ---
     const innerWidthPx = innerWidthCm * scale;
     const innerHeightPx = innerHeightCm * scale;
@@ -189,6 +205,7 @@
     const vpCenterY = y + doorHeightPx + vpOffsetYPx;
 
     // --- Drawing ---
+    ctx.save(); // Save context for this door
 
     // 1. Draw the border
     ctx.strokeStyle = 'black';
@@ -196,86 +213,102 @@
     ctx.strokeRect(
       x + borderWidthPx / 2,
       y + borderWidthPx / 2,
-      innerWidthPx, // Use inner directly
-      innerHeightPx // Use inner directly
+      innerWidthPx,
+      innerHeightPx
     );
 
     // 2. Draw Sectors inside the inner bounds
     ctx.save(); // Save context before clipping
-
-    // Set clipping path to inner rectangle
     ctx.beginPath();
     ctx.rect(innerRectX, innerRectY, innerWidthPx, innerHeightPx);
     ctx.clip();
 
-    // Calculate total angle span and starting angle for centering
     const numSpaces = Math.max(0, numBlackSectors - 1);
     const totalAngleRad = (numBlackSectors * blackSectorRad) + (numSpaces * spaceSectorRad);
-    // Center the fan horizontally around the vertical axis (-PI/2 or 270 degrees)
     const startAngle = (-Math.PI / 2) - (totalAngleRad / 2);
     const stepRad = blackSectorRad + spaceSectorRad;
-
-    // Draw the sectors
     ctx.fillStyle = 'black';
     let currentAngle = startAngle;
     for (let i = 0; i < numBlackSectors; i++) {
         const endAngle = currentAngle + blackSectorRad;
-
-        if (blackSectorRad > 0) { // Only draw if angle > 0
+        if (blackSectorRad > 0) {
              ctx.beginPath();
              ctx.moveTo(vpCenterX, vpCenterY);
              ctx.arc(vpCenterX, vpCenterY, sectorRadiusPx, currentAngle, endAngle);
              ctx.closePath();
              ctx.fill();
         }
-
-        // Move to the start of the next black sector
         currentAngle += stepRad;
     }
-
     ctx.restore(); // Restore context to remove clipping
 
-    // 3. Draw the VP circle (after restoring context)
+    // 3. Draw the VP circle (after clipping restore)
     ctx.fillStyle = 'blue';
     ctx.beginPath();
     ctx.arc(vpCenterX, vpCenterY, vpRadiusPx, 0, Math.PI * 2);
     ctx.fill();
+
+    ctx.restore(); // Restore context for this door
   }
 
   // --- Redraw Canvas ---
   function redraw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     drawFlower(flowerX, flowerY);
-    drawDoor(doorX, doorY);
+    // Draw both doors using their state
+    drawDoor(leftDoorState);
+    drawDoor(rightDoorState);
   }
 
   // --- Mouse Event Handlers ---
   canvas.addEventListener('mousedown', (e) => {
     const mouseX = e.offsetX;
     const mouseY = e.offsetY;
-    if (mouseX >= doorX && mouseX <= doorX + doorWidthPx &&
-        mouseY >= doorY && mouseY <= doorY + doorHeightPx) {
+
+    // Check left door first
+    if (mouseX >= leftDoorState.x && mouseX <= leftDoorState.x + doorWidthPx &&
+        mouseY >= leftDoorState.y && mouseY <= leftDoorState.y + doorHeightPx) {
       isDragging = true;
-      dragOffsetX = mouseX - doorX;
+      activeDraggedDoor = 'left';
+      dragOffsetX = mouseX - leftDoorState.x;
       canvas.style.cursor = 'grabbing';
+    }
+    // Check right door if left not hit
+    else if (mouseX >= rightDoorState.x && mouseX <= rightDoorState.x + doorWidthPx &&
+             mouseY >= rightDoorState.y && mouseY <= rightDoorState.y + doorHeightPx) {
+       isDragging = true;
+       activeDraggedDoor = 'right';
+       dragOffsetX = mouseX - rightDoorState.x;
+       canvas.style.cursor = 'grabbing';
     }
   });
 
   canvas.addEventListener('mousemove', (e) => {
-    if (!isDragging) return;
+    if (!isDragging || !activeDraggedDoor) return;
+
     const mouseX = e.offsetX;
-    let newDoorX = mouseX - dragOffsetX;
-    newDoorX = Math.max(0, newDoorX);
-    newDoorX = Math.min(canvas.width - doorWidthPx, newDoorX);
-    doorX = newDoorX;
+    let newX = mouseX - dragOffsetX;
+
+    // Apply constraints based on which door is dragged
+    if (activeDraggedDoor === 'left') {
+        // Clamp only to canvas left edge
+        newX = Math.max(0, newX);
+        leftDoorState.x = newX;
+    } else { // activeDraggedDoor === 'right'
+        // Clamp only to canvas right edge
+        newX = Math.min(newX, canvas.width - doorWidthPx);
+        rightDoorState.x = newX;
+    }
+
     redraw();
   });
 
   const stopDragging = () => {
      if (isDragging) {
        isDragging = false;
+       activeDraggedDoor = null; // Clear active door
        canvas.style.cursor = 'grab';
-       redraw();
+       redraw(); // Redraw in final position
     }
   };
   canvas.addEventListener('mouseup', stopDragging);
