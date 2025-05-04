@@ -6,11 +6,36 @@
   body { margin: 0; background-color: #f0f0f0; font-family: sans-serif;}
   canvas { border: 1px solid black; display: block; /* Remove margin-top, handle spacing differently */}
   .controls { padding: 10px; background-color: #eee; border: 1px solid #ccc; }
-  .controls legend { font-weight: bold; margin-bottom: 5px; }
-  .controls div { margin-bottom: 5px; }
-  .controls label { display: inline-block; min-width: 150px; margin-right: 5px; text-align: right; }
-  .controls input { width: 60px; margin-right: 5px;}
-  .controls span { display: inline-block; min-width: 25px; text-align: right;}
+  .controls legend { font-weight: bold; margin-bottom: 10px; font-size: 1.2em; /* Larger legend */ }
+  .controls div { margin-bottom: 8px; display: flex; align-items: center; /* Flex for alignment */ }
+  .controls label {
+      display: inline-block;
+      min-width: 120px; /* Adjusted min-width */
+      margin-right: 5px;
+      text-align: right;
+      font-size: 1.1em; /* Larger label */
+      flex: 1; /* Allow label to take space */
+  }
+  .controls input {
+      width: 70px; /* Slightly wider input */
+      margin-right: 5px;
+      padding: 8px 5px; /* More vertical padding */
+      font-size: 1.1em; /* Larger font in input */
+      height: auto; /* Let padding define height */
+      flex: 0 0 70px; /* Don't grow/shrink */
+  }
+  .controls span {
+      display: inline-block;
+      min-width: 40px; /* Adjusted min-width */
+      text-align: right;
+      font-size: 1.1em; /* Larger unit span */
+      flex: 0 0 40px; /* Don't grow/shrink */
+  }
+  .controls span + span { /* Unit label (cm/deg) */
+      min-width: 25px;
+      text-align: left;
+      flex: 0 0 25px;
+  }
 
   /* Settings Container - Mobile First (Hidden) */
   .settings-container {
@@ -86,57 +111,57 @@
     <fieldset class="controls">
       <legend>Global Settings</legend>
       <div>
-        <label for="innerWidthInput">Inner Width (cm):</label>
+        <label for="innerWidthInput">Inner Width:</label>
         <input type="number" id="innerWidthInput" value="40" min="10" max="100" step="1">
-        <span id="innerWidthValue">40</span> cm
+        <span id="innerWidthValue">40</span> <span>cm</span>
       </div>
       <div>
-        <label for="innerHeightInput">Inner Height (cm):</label>
+        <label for="innerHeightInput">Inner Height:</label>
         <input type="number" id="innerHeightInput" value="20" min="10" max="60" step="1">
-        <span id="innerHeightValue">20</span> cm
+        <span id="innerHeightValue">20</span> <span>cm</span>
       </div>
       <div>
-        <label for="vpOffsetInput">VP Offset Y (cm):</label>
+        <label for="vpOffsetInput">VP Offset:</label>
         <input type="number" id="vpOffsetInput" value="5" min="0" max="20" step="1">
-        <span id="vpOffsetValue">5</span> cm
+        <span id="vpOffsetValue">5</span> <span>cm</span>
       </div>
     </fieldset>
 
     <fieldset class="controls">
         <legend>Left Door Settings</legend>
         <div>
-            <label for="leftNumSectorsInput">Num Black Sectors:</label>
+            <label for="leftNumSectorsInput">Sectors:</label>
             <input type="number" id="leftNumSectorsInput" value="17" min="1" max="50" step="1">
             <span id="leftNumSectorsValue">17</span>
         </div>
         <div>
-            <label for="leftBlackAngleInput">Black Sector Angle:</label>
+            <label for="leftBlackAngleInput">Sector Angle:</label>
             <input type="number" id="leftBlackAngleInput" value="4" min="0.1" max="45" step="0.1">
-            <span id="leftBlackAngleValue">4.0</span> deg
+            <span id="leftBlackAngleValue">4.0</span> <span>deg</span>
         </div>
         <div>
             <label for="leftSpaceAngleInput">Space Angle:</label>
             <input type="number" id="leftSpaceAngleInput" value="3" min="0" max="45" step="0.1">
-            <span id="leftSpaceAngleValue">3.0</span> deg
+            <span id="leftSpaceAngleValue">3.0</span> <span>deg</span>
         </div>
     </fieldset>
 
     <fieldset class="controls">
         <legend>Right Door Settings</legend>
         <div>
-            <label for="rightNumSectorsInput">Num Black Sectors:</label>
+            <label for="rightNumSectorsInput">Sectors:</label>
             <input type="number" id="rightNumSectorsInput" value="19" min="1" max="50" step="1">
             <span id="rightNumSectorsValue">19</span>
         </div>
         <div>
-            <label for="rightBlackAngleInput">Black Sector Angle:</label>
+            <label for="rightBlackAngleInput">Sector Angle:</label>
             <input type="number" id="rightBlackAngleInput" value="3.5" min="0.1" max="45" step="0.1">
-            <span id="rightBlackAngleValue">3.5</span> deg
+            <span id="rightBlackAngleValue">3.5</span> <span>deg</span>
         </div>
         <div>
             <label for="rightSpaceAngleInput">Space Angle:</label>
             <input type="number" id="rightSpaceAngleInput" value="2.5" min="0" max="45" step="0.1">
-            <span id="rightSpaceAngleValue">2.5</span> deg
+            <span id="rightSpaceAngleValue">2.5</span> <span>deg</span>
         </div>
     </fieldset>
 </div>
