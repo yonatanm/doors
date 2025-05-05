@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>SVG Door Visualizer</title>
+<style>
+  /* --- Copied CSS from index.html --- */
+  body { margin: 0; background-color: #f0f0f0; font-family: sans-serif; font-size: 16px; /* Base font size */ }
+  /* svg { border: 1px solid black; display: block; } */ /* Style SVG directly if needed */
+   svg { border: 1px solid black; display: block; user-select: none; /* Prevent text selection during drag */ }
+  .controls { padding: 0 10px 10px 10px; /* Padding adjusted */ background-color: transparent; border: none; }
+  .controls legend {
+      font-weight: 600; /* Bolder */
+      margin-bottom: 20px; /* More space */
+      font-size: 1.4rem; /* Significantly larger */
+      color: #111; /* Darker */
+      border-bottom: 2px solid #aaa; /* Thicker separator */
+      padding-bottom: 8px;
+      width: 100%;
+      box-sizing: border-box;
+  }
+  .controls div { margin-bottom: 20px; /* More vertical space */ }
+  .controls label {
+      display: block;
+      margin-bottom: 6px;
+      text-align: left;
+      font-size: 1.15rem; /* Larger labels */
+      color: #444; /* Slightly darker */
+      font-weight: 500;
+  }
+  .controls .input-row { display: block; }
+  .controls input {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 15px 12px; /* Significantly taller */
+      font-size: 1.2rem; /* Larger input font */
+      border: 1px solid #999; /* Clearer border */
+      border-radius: 5px;
+      background-color: #fff; /* White background */
+  }
+
+  /* Settings Container - Mobile First (Hidden) */
+  .settings-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100%; /* Use 100% */
+    width: 90%; /* Wider panel */
+    max-width: 400px; /* Increase max width */
+    background-color: rgba(240, 240, 240, 0.98); /* More opaque */
+    border-right: 1px solid #bbb;
+    padding: 20px; /* More padding */
+    box-sizing: border-box;
+    overflow-y: auto;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    gap: 25px; /* More space between fieldsets */
+    transform: translateX(-105%);
+    transition: transform 0.3s ease-in-out;
+  }
+
+  .settings-container.active {
+    transform: translateX(0);
+  }
+
+  /* Hamburger Button */
+  #hamburger-btn {
+      position: fixed;
+      top: 15px; /* Adjusted position */
+      left: 15px;
+      z-index: 1001;
+      font-size: 28px; /* Larger icon */
+      padding: 8px 12px;
+      background-color: #e0e0e0;
+      border: 1px solid #adadad;
+      cursor: pointer;
+      border-radius: 5px;
+      line-height: 1;
+  }
+
+  /* Close Button (inside settings) */
+  #close-settings-btn {
+      position: absolute;
+      top: 10px; /* Adjusted position */
+      right: 15px;
+      font-size: 28px; /* Larger icon */
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 5px;
+      line-height: 1;
+      color: #555;
+  }
+
+  /* --- SVG Specific Styles --- */
+  .door-group {
+      cursor: grab;
+  }
+  .door-group.grabbing {
+      cursor: grabbing;
+  }
+
+
+</style>
+</head>
+<body>
+
+<button id="hamburger-btn">☰</button>
+
+<div class="settings-container" id="settings-panel">
+    <button id="close-settings-btn">×</button>
+    <!-- Copied Fieldsets from index.html -->
+    <fieldset class="controls">
+      <legend>Global Settings</legend>
+      <div>
+        <label for="innerWidthInput">Inner Width (cm):</label>
+        <div class="input-row">
+            <input type="number" id="innerWidthInput" value="40" min="10" max="100" step="1">
+        </div>
+      </div>
+      <div>
+        <label for="innerHeightInput">Inner Height (cm):</label>
+        <div class="input-row">
+            <input type="number" id="innerHeightInput" value="20" min="10" max="60" step="1">
+        </div>
+      </div>
+      <div>
+        <label for="vpOffsetInput">VP Offset (cm):</label>
+        <div class="input-row">
+            <input type="number" id="vpOffsetInput" value="5" min="0" max="20" step="1">
+        </div>
+      </div>
+
+      <!-- Display Calculated Dimensions -->
+      <div>
+        <label>Calculated Door Width:</label>
+        <div class="input-row">
+          <span id="displayDoorWidthCm" style="font-weight: bold; padding: 10px 0; display: inline-block;">-- cm</span>
+        </div>
+      </div>
+       <div>
+        <label>Calculated Door Height:</label>
+        <div class="input-row">
+          <span id="displayDoorHeightCm" style="font-weight: bold; padding: 10px 0; display: inline-block;">-- cm</span>
+        </div>
+      </div>
+
+    </fieldset>
+
+    <fieldset class="controls">
+        <legend>Left Door Settings</legend>
+        <div>
+            <label for="leftNumSectorsInput">Sectors:</label>
+            <div class="input-row">
+                <input type="number" id="leftNumSectorsInput" value="17" min="1" max="50" step="1">
+            </div>
+        </div>
+        <div>
+            <label for="leftBlackAngleInput">Sector Angle (deg):</label>
+            <div class="input-row">
+                <input type="number" id="leftBlackAngleInput" value="4" min="0.1" max="45" step="0.1">
+            </div>
+        </div>
+        <div>
+            <label for="leftSpaceAngleInput">Space Angle (deg):</label>
+            <div class="input-row">
+                <input type="number" id="leftSpaceAngleInput" value="3" min="0" max="45" step="0.1">
+            </div>
+        </div>
+    </fieldset>
+
+    <fieldset class="controls">
+        <legend>Right Door Settings</legend>
+        <div>
+            <label for="rightNumSectorsInput">Sectors:</label>
+            <div class="input-row">
+                <input type="number" id="rightNumSectorsInput" value="19" min="1" max="50" step="1">
+            </div>
+        </div>
+        <div>
+            <label for="rightBlackAngleInput">Sector Angle (deg):</label>
+            <div class="input-row">
+                <input type="number" id="rightBlackAngleInput" value="3.5" min="0.1" max="45" step="0.1">
+            </div>
+        </div>
+        <div>
+            <label for="rightSpaceAngleInput">Space Angle (deg):</label>
+            <div class="input-row">
+                <input type="number" id="rightSpaceAngleInput" value="2.5" min="0" max="45" step="0.1">
+            </div>
+        </div>
+    </fieldset>
+</div>
+
+<!-- SVG Element replaces Canvas -->
+<svg id="doorSvg" width="1500" height="750">
+    <defs>
+        <!-- Clip Paths for Door Inner Areas -->
+        <clipPath id="left-door-clip">
+            <rect id="left-clip-rect" x="0" y="0" width="100" height="100" />
+        </clipPath>
+        <clipPath id="right-door-clip">
+            <rect id="right-clip-rect" x="0" y="0" width="100" height="100" />
+        </clipPath>
+    </defs>
+
+    <!-- Left Door Group -->
+    <g id="left-door-group" class="door-group" transform="translate(0, 0)">
+        <!-- Frame -->
+        <rect id="left-door-frame" x="0" y="0" width="100" height="100" fill="none" stroke="black" stroke-width="1" />
+        <!-- Sectors (Clipped) -->
+        <g id="left-sectors-group" clip-path="url(#left-door-clip)">
+            <!-- Sector paths will be generated here -->
+        </g>
+        <!-- Vanishing Point -->
+        <circle id="left-vp" cx="50" cy="110" r="1" fill="blue" />
+    </g>
+
+    <!-- Right Door Group -->
+    <g id="right-door-group" class="door-group" transform="translate(150, 0)">
+         <!-- Frame -->
+        <rect id="right-door-frame" x="0" y="0" width="100" height="100" fill="none" stroke="black" stroke-width="1" />
+        <!-- Sectors (Clipped) -->
+        <g id="right-sectors-group" clip-path="url(#right-door-clip)">
+            <!-- Sector paths will be generated here -->
+        </g>
+        <!-- Vanishing Point -->
+        <circle id="right-vp" cx="50" cy="110" r="1" fill="blue" />
+    </g>
+</svg>
+
+<script>
+  // --- Get SVG and Control Elements ---
+  const svg = document.getElementById('doorSvg'); // Get SVG element
+  // const canvas = document.getElementById('doorCanvas'); // REMOVED
+  // const ctx = canvas.getContext('2d'); // REMOVED
+
+  // Get SVG elements by ID (placeholders, update in init/redraw)
+  const leftDoorGroup = document.getElementById('left-door-group');
+  const leftDoorFrame = document.getElementById('left-door-frame');
+  const leftSectorsGroup = document.getElementById('left-sectors-group');
+  const leftVp = document.getElementById('left-vp');
+  const leftClipRect = document.getElementById('left-clip-rect');
+
+  const rightDoorGroup = document.getElementById('right-door-group');
+  const rightDoorFrame = document.getElementById('right-door-frame');
+  const rightSectorsGroup = document.getElementById('right-sectors-group');
+  const rightVp = document.getElementById('right-vp');
+  const rightClipRect = document.getElementById('right-clip-rect');
+
+  // Get display elements for calculated dimensions
+  const displayDoorWidthCm = document.getElementById('displayDoorWidthCm');
+  const displayDoorHeightCm = document.getElementById('displayDoorHeightCm');
+
+  // --- Get DOM Elements (Settings Panel) ---
+  const settingsPanel = document.getElementById('settings-panel');
+  const hamburgerBtn = document.getElementById('hamburger-btn');
+  const closeSettingsBtn = document.getElementById('close-settings-btn');
+
+  // Global control elements
+  const innerWidthInput = document.getElementById('innerWidthInput');
+  const innerHeightInput = document.getElementById('innerHeightInput');
+  const vpOffsetInput = document.getElementById('vpOffsetInput');
+
+  // Get Left Door Setting control elements
+  const leftNumSectorsInput = document.getElementById('leftNumSectorsInput');
+  const leftBlackAngleInput = document.getElementById('leftBlackAngleInput');
+  const leftSpaceAngleInput = document.getElementById('leftSpaceAngleInput');
+
+  // Get Right Door Setting control elements
+  const rightNumSectorsInput = document.getElementById('rightNumSectorsInput');
+  const rightBlackAngleInput = document.getElementById('rightBlackAngleInput');
+  const rightSpaceAngleInput = document.getElementById('rightSpaceAngleInput');
+
+  // --- Door Properties (Constants and Dynamic State) ---
+  const scale = 15; // Pixels per cm
+  const borderWidthCm = 2;
+  let borderWidthPx = borderWidthCm * scale; // Will be updated
+  const vpRadiusPx = 1;
+  const sectorRadiusCm = 37;
+  let sectorRadiusPx = sectorRadiusCm * scale; // Will be updated
+
+  // State variables - Global
+  let innerWidthCm = 40;
+  let innerHeightCm = 20;
+  let vpOffsetYCm = 5;
+
+  // Calculated global dimensions (will be updated in updateAndRedraw)
+  let doorWidthCm, doorHeightCm, doorWidthPx, doorHeightPx, vpOffsetYPx;
+
+  // --- Door States (Position and Settings) ---
+  let leftDoorState = {
+    x: 0, y: 0, // Position managed by group transform
+    numBlackSectors: 17,
+    blackSectorDeg: 4,
+    spaceSectorDeg: 3,
+    blackSectorRad: 0, // Calculated
+    spaceSectorRad: 0  // Calculated
+  };
+  let rightDoorState = {
+    x: 0, y: 0, // Position managed by group transform
+    numBlackSectors: 19,
+    blackSectorDeg: 3.5,
+    spaceSectorDeg: 2.5,
+    blackSectorRad: 0, // Calculated
+    spaceSectorRad: 0  // Calculated
+  };
+
+  // --- Drag State ---
+  let isDragging = false;
+  let dragOffsetX = 0;
+  let activeDraggedDoor = null; // 'left' or 'right'
+  let activeDraggedElement = null; // Reference to the group element being dragged
+
+  // --- SVG Namespace ---
+  const svgNS = "http://www.w3.org/2000/svg";
+
+  // --- Update State from Inputs & Redraw ---
+  function updateAndRedraw() {
+    // Read global values from inputs
+    innerWidthCm = parseFloat(innerWidthInput.value);
+    innerHeightCm = parseFloat(innerHeightInput.value);
+    vpOffsetYCm = parseFloat(vpOffsetInput.value);
+
+    // Read left door settings values from inputs
+    leftDoorState.numBlackSectors = parseInt(leftNumSectorsInput.value);
+    leftDoorState.blackSectorDeg = parseFloat(leftBlackAngleInput.value);
+    leftDoorState.spaceSectorDeg = parseFloat(leftSpaceAngleInput.value);
+
+    // Read right door settings values from inputs
+    rightDoorState.numBlackSectors = parseInt(rightNumSectorsInput.value);
+    rightDoorState.blackSectorDeg = parseFloat(rightBlackAngleInput.value);
+    rightDoorState.spaceSectorDeg = parseFloat(rightSpaceAngleInput.value);
+
+    // Recalculate total door dimensions based on inner dimensions + border
+    doorWidthCm = innerWidthCm + (borderWidthCm * 2);
+    doorHeightCm = innerHeightCm + (borderWidthCm * 2);
+
+    // Recalculate global pixel values
+    borderWidthPx = borderWidthCm * scale;
+    doorWidthPx = doorWidthCm * scale;
+    doorHeightPx = doorHeightCm * scale;
+    vpOffsetYPx = vpOffsetYCm * scale;
+    sectorRadiusPx = sectorRadiusCm * scale;
+
+
+    // Recalculate door-specific pixel values (radians)
+    leftDoorState.blackSectorRad = leftDoorState.blackSectorDeg * Math.PI / 180;
+    leftDoorState.spaceSectorRad = leftDoorState.spaceSectorDeg * Math.PI / 180;
+    rightDoorState.blackSectorRad = rightDoorState.blackSectorDeg * Math.PI / 180;
+    rightDoorState.spaceSectorRad = rightDoorState.spaceSectorDeg * Math.PI / 180;
+
+    // --- Dynamic Canvas Resizing --- REMOVED
+    // const targetCanvasWidth = doorWidthPx * 2;
+    // const targetCanvasHeight = targetCanvasWidth / 2; // Maintain 2:1 aspect ratio
+    // if (canvas.width !== targetCanvasWidth || canvas.height !== targetCanvasHeight) {
+    //     console.log(`Resizing canvas: DoorWidthPx=${doorWidthPx.toFixed(1)}, TargetCanvasWidth=${targetCanvasWidth.toFixed(1)}`); // Added Log
+    //     canvas.width = targetCanvasWidth;
+    //     canvas.height = targetCanvasHeight;
+    // }
+    // --- End Resizing ---
+
+    // Update display elements
+    if (displayDoorWidthCm) {
+        displayDoorWidthCm.textContent = `${doorWidthCm.toFixed(1)} cm`;
+    }
+    if (displayDoorHeightCm) {
+        displayDoorHeightCm.textContent = `${doorHeightCm.toFixed(1)} cm`;
+    }
+
+    // Get SVG viewport dimensions
+    const svgWidth = svg.width.baseVal.value;
+    const svgHeight = svg.height.baseVal.value;
+
+    // Recalculate door positions ONLY if not currently dragging
+    if (!isDragging) {
+      // Position doors initially: left at 0, right next to it, centered vertically
+      leftDoorState.x = 0;
+      rightDoorState.x = doorWidthPx; // Start right door immediately after left
+      // Center vertically within SVG viewport
+      const centeredY = (svgHeight - doorHeightPx) / 2;
+      leftDoorState.y = centeredY;
+      rightDoorState.y = centeredY;
+    }
+    // If dragging, update Y position if height changed
+    else {
+        const centeredY = (svgHeight - doorHeightPx) / 2;
+        leftDoorState.y = centeredY;
+        rightDoorState.y = centeredY;
+        // Ensure dragged door stays within new bounds after resize (update transform in drag logic)
+         if (activeDraggedElement) {
+            activeDraggedElement.setAttribute('transform', `translate(${activeDraggedDoor === 'left' ? leftDoorState.x : rightDoorState.x}, ${centeredY})`);
+         }
+    }
+
+    redrawSVG(); // Redraw SVG with new dimensions/settings/positions
+  }
+
+
+  // --- Draw Single Door and VP (SVG Version) ---
+  function drawDoorSVG(doorState, groupElement, frameElement, vpElement, sectorsGroupElement, clipRectElement) {
+    const { x, y, numBlackSectors, blackSectorRad, spaceSectorRad } = doorState;
+
+    // --- Calculations ---
+    const innerWidthPx = doorWidthPx - (borderWidthPx * 2);
+    const innerHeightPx = doorHeightPx - (borderWidthPx * 2);
+    // VP coordinates are relative to the door group's origin (0,0)
+    const vpCenterX = doorWidthPx / 2;
+    const vpCenterY = doorHeightPx + vpOffsetYPx;
+
+    // --- Update SVG Elements ---
+
+    // 1. Update Group Position
+    // Only update Y here if needed, X is updated on init and during drag
+     groupElement.setAttribute('transform', `translate(${x}, ${y})`);
+
+    // 2. Update Frame Rect
+    frameElement.setAttribute('width', doorWidthPx);
+    frameElement.setAttribute('height', doorHeightPx);
+    frameElement.setAttribute('stroke-width', borderWidthPx);
+    // x, y are 0, 0 relative to the group
+
+    // 3. Update Clip Path Rect (relative to group)
+    clipRectElement.setAttribute('x', borderWidthPx / 2);
+    clipRectElement.setAttribute('y', borderWidthPx / 2);
+    clipRectElement.setAttribute('width', doorWidthPx - borderWidthPx);
+    clipRectElement.setAttribute('height', doorHeightPx - borderWidthPx);
+
+    // 4. Clear existing sectors
+    while (sectorsGroupElement.firstChild) {
+        sectorsGroupElement.removeChild(sectorsGroupElement.firstChild);
+    }
+
+    // 5. Draw New Sectors
+    const numSpaces = Math.max(0, numBlackSectors - 1);
+    const totalAngleRad = (numBlackSectors * blackSectorRad) + (numSpaces * spaceSectorRad);
+    const startAngle = (-Math.PI / 2) - (totalAngleRad / 2); // Center the fan pattern vertically upwards
+    const stepRad = blackSectorRad + spaceSectorRad;
+    let currentAngle = startAngle;
+
+    for (let i = 0; i < numBlackSectors; i++) {
+        const endAngle = currentAngle + blackSectorRad;
+        if (blackSectorRad > 0) {
+            // Calculate arc start/end points relative to VP center
+            const startX = vpCenterX + sectorRadiusPx * Math.cos(currentAngle);
+            const startY = vpCenterY + sectorRadiusPx * Math.sin(currentAngle);
+            const endX = vpCenterX + sectorRadiusPx * Math.cos(endAngle);
+            const endY = vpCenterY + sectorRadiusPx * Math.sin(endAngle);
+
+            // large-arc-flag is 1 if the angle is > 180 degrees (not applicable here)
+            const largeArcFlag = blackSectorRad > Math.PI ? 1 : 0;
+            // sweep-flag is 1 for positive angle direction (clockwise)
+            const sweepFlag = 1;
+
+            // Construct the 'd' attribute string for the path
+            const d = [
+                `M ${vpCenterX},${vpCenterY}`, // Move to VP center
+                `L ${startX},${startY}`,       // Line to arc start
+                `A ${sectorRadiusPx},${sectorRadiusPx} 0 ${largeArcFlag} ${sweepFlag} ${endX},${endY}`, // Arc command
+                'Z' // Close path (line back to VP center)
+            ].join(' ');
+
+            // Create the SVG path element
+            const path = document.createElementNS(svgNS, 'path');
+            path.setAttribute('d', d);
+            path.setAttribute('fill', 'black');
+            sectorsGroupElement.appendChild(path);
+        }
+        currentAngle += stepRad;
+    }
+
+    // 6. Update VP Circle (relative to group)
+    vpElement.setAttribute('cx', vpCenterX);
+    vpElement.setAttribute('cy', vpCenterY);
+    vpElement.setAttribute('r', vpRadiusPx); // Radius is constant
+  }
+
+
+  // --- Redraw SVG ---
+  function redrawSVG() {
+    // No need to clear SVG like canvas, just update elements
+    drawDoorSVG(leftDoorState, leftDoorGroup, leftDoorFrame, leftVp, leftSectorsGroup, leftClipRect);
+    drawDoorSVG(rightDoorState, rightDoorGroup, rightDoorFrame, rightVp, rightSectorsGroup, rightClipRect);
+  }
+
+  // --- Helper to get SVG coordinates from mouse/touch event ---
+  function getSVGCoordinates(event) {
+      const pt = svg.createSVGPoint();
+      if (event.touches && event.touches.length > 0) {
+          // Touch event
+          pt.x = event.touches[0].clientX;
+          pt.y = event.touches[0].clientY;
+      } else {
+          // Mouse event
+          pt.x = event.clientX;
+          pt.y = event.clientY;
+      }
+      // Transform screen coordinates to SVG coordinates
+      const svgPoint = pt.matrixTransform(svg.getScreenCTM().inverse());
+      return { x: svgPoint.x, y: svgPoint.y };
+  }
+
+
+  // --- Event Handlers (Common Logic for SVG Drag) ---
+  let startDragSVGX, startDragSVGY; // Use SVG coordinates
+  let initialTranslateX; // Store initial transform x of the dragged group
+
+ function handleDragStartSVG(event) {
+    const coords = getSVGCoordinates(event);
+    startDragSVGX = coords.x;
+    startDragSVGY = coords.y;
+
+    let targetGroup = null;
+    let doorType = null;
+
+    // Determine which group was clicked (event.target might be child element)
+    if (leftDoorGroup.contains(event.target)) {
+        targetGroup = leftDoorGroup;
+        doorType = 'left';
+    } else if (rightDoorGroup.contains(event.target)) {
+        targetGroup = rightDoorGroup;
+        doorType = 'right';
+    }
+
+    if (targetGroup) {
+        isDragging = true;
+        activeDraggedDoor = doorType;
+        activeDraggedElement = targetGroup; // Store the element itself
+
+        // Get the current translation from the transform attribute
+        const transform = targetGroup.transform.baseVal;
+        initialTranslateX = transform.numberOfItems > 0 ? transform.getItem(0).matrix.e : 0;
+
+        dragOffsetX = startDragSVGX - initialTranslateX; // Offset relative to element's origin
+
+        targetGroup.classList.add('grabbing'); // Add grabbing cursor class
+        return true; // Indicate drag started
+    }
+    return false; // Drag did not start on a door
+ }
+
+
+ function handleDragMoveSVG(event) {
+     if (!isDragging || !activeDraggedElement) return;
+
+     const coords = getSVGCoordinates(event);
+     const currentSVGX = coords.x;
+
+     let newTranslateX = currentSVGX - dragOffsetX;
+     const svgWidth = svg.width.baseVal.value;
+
+     // Apply constraints
+     newTranslateX = Math.max(0, newTranslateX); // Prevent dragging past left edge
+     newTranslateX = Math.min(newTranslateX, svgWidth - doorWidthPx); // Prevent dragging past right edge
+
+     // Update the transform attribute directly
+     // Keep the existing Y translation (which should be up-to-date from updateAndRedraw)
+     const currentY = activeDraggedDoor === 'left' ? leftDoorState.y : rightDoorState.y;
+     activeDraggedElement.setAttribute('transform', `translate(${newTranslateX}, ${currentY})`);
+
+     // Update the corresponding door state's x variable
+     if (activeDraggedDoor === 'left') {
+         leftDoorState.x = newTranslateX;
+     } else {
+         rightDoorState.x = newTranslateX;
+     }
+     // No redraw needed here as transform handles the visual update
+ }
+
+
+  function handleDragEndSVG() {
+     if (isDragging && activeDraggedElement) {
+        activeDraggedElement.classList.remove('grabbing'); // Remove grabbing cursor class
+        // Update the final state X based on the last translation
+        const finalTransform = activeDraggedElement.transform.baseVal;
+        const finalTranslateX = finalTransform.numberOfItems > 0 ? finalTransform.getItem(0).matrix.e : 0;
+
+        if (activeDraggedDoor === 'left') {
+            leftDoorState.x = finalTranslateX;
+        } else {
+            rightDoorState.x = finalTranslateX;
+        }
+
+     }
+     isDragging = false;
+     activeDraggedDoor = null;
+     activeDraggedElement = null;
+     // Optional: redrawSVG() could be called here if there were other drag-related visual changes
+  }
+
+  // --- Mouse Event Listeners ---
+  svg.addEventListener('mousedown', (e) => {
+    handleDragStartSVG(e);
+  });
+
+  // Attach move/end listeners to the window to catch events outside SVG
+  window.addEventListener('mousemove', (e) => {
+    if (isDragging) { // Only handle if dragging started on SVG
+        handleDragMoveSVG(e);
+    }
+  });
+  window.addEventListener('mouseup', handleDragEndSVG);
+
+
+  // --- Touch Event Listeners ---
+  svg.addEventListener('touchstart', (e) => {
+    if (e.touches.length === 1) { // Single touch
+        if (handleDragStartSVG(e)) {
+            e.preventDefault(); // Prevent scrolling if drag started on a door
+        }
+    }
+  }, { passive: false }); // Need passive: false to call preventDefault
+
+  window.addEventListener('touchmove', (e) => {
+    if (!isDragging) return; // Don't prevent scroll if not dragging
+    e.preventDefault(); // Prevent scrolling while dragging
+    if (e.touches.length === 1) {
+        handleDragMoveSVG(e);
+    }
+  }, { passive: false });
+
+  window.addEventListener('touchend', handleDragEndSVG);
+  window.addEventListener('touchcancel', handleDragEndSVG);
+
+
+  // --- Input Event Listeners ---
+  // Global
+  innerWidthInput.addEventListener('input', updateAndRedraw);
+  innerHeightInput.addEventListener('input', updateAndRedraw);
+  vpOffsetInput.addEventListener('input', updateAndRedraw);
+  // Left Door Settings
+  leftNumSectorsInput.addEventListener('input', updateAndRedraw);
+  leftBlackAngleInput.addEventListener('input', updateAndRedraw);
+  leftSpaceAngleInput.addEventListener('input', updateAndRedraw);
+  // Right Door Settings
+  rightNumSectorsInput.addEventListener('input', updateAndRedraw);
+  rightBlackAngleInput.addEventListener('input', updateAndRedraw);
+  rightSpaceAngleInput.addEventListener('input', updateAndRedraw);
+
+  // Settings Toggle
+  hamburgerBtn.addEventListener('click', () => {
+      settingsPanel.classList.toggle('active');
+  });
+
+  closeSettingsBtn.addEventListener('click', () => {
+      settingsPanel.classList.remove('active');
+  });
+
+  // --- Initial Setup ---
+  updateAndRedraw(); // Calculate initial dimensions/settings and draw SVG
+
+</script>
+
+</body>
+</html>
