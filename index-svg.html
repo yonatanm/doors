@@ -343,21 +343,23 @@
     vpOffsetYPx = vpOffsetYCm * scale;
     sectorRadiusPx = sectorRadiusCm * scale;
 
-
     // Recalculate door-specific pixel values (radians)
     leftDoorState.blackSectorRad = leftDoorState.blackSectorDeg * Math.PI / 180;
     leftDoorState.spaceSectorRad = leftDoorState.spaceSectorDeg * Math.PI / 180;
     rightDoorState.blackSectorRad = rightDoorState.blackSectorDeg * Math.PI / 180;
     rightDoorState.spaceSectorRad = rightDoorState.spaceSectorDeg * Math.PI / 180;
 
-    // --- Dynamic Canvas Resizing --- REMOVED
-    // const targetCanvasWidth = doorWidthPx * 2;
-    // const targetCanvasHeight = targetCanvasWidth / 2; // Maintain 2:1 aspect ratio
-    // if (canvas.width !== targetCanvasWidth || canvas.height !== targetCanvasHeight) {
-    //     console.log(`Resizing canvas: DoorWidthPx=${doorWidthPx.toFixed(1)}, TargetCanvasWidth=${targetCanvasWidth.toFixed(1)}`); // Added Log
-    //     canvas.width = targetCanvasWidth;
-    //     canvas.height = targetCanvasHeight;
-    // }
+    // --- Dynamic SVG Resizing ---
+    const targetSvgWidth = doorWidthPx * 2;
+    const targetSvgHeight = targetSvgWidth / 2; // Maintain 2:1 aspect ratio
+
+    if (svg.width.baseVal.value !== targetSvgWidth || svg.height.baseVal.value !== targetSvgHeight) {
+        console.log(`Resizing SVG: Target Width=${targetSvgWidth.toFixed(1)}, Target Height=${targetSvgHeight.toFixed(1)}`);
+        svg.setAttribute('width', targetSvgWidth);
+        svg.setAttribute('height', targetSvgHeight);
+        // Note: The viewBox attribute could be used for scaling, but for direct resizing,
+        // simply setting width/height is sufficient here.
+    }
     // --- End Resizing ---
 
     // Update display elements
