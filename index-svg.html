@@ -124,12 +124,6 @@
             <input type="number" id="innerHeightInput" value="20" min="10" max="60" step="1">
         </div>
       </div>
-      <div>
-        <label for="vpOffsetInput">VP Offset (cm):</label>
-        <div class="input-row">
-            <input type="number" id="vpOffsetInput" value="5" min="0" max="20" step="1">
-        </div>
-      </div>
 
       <!-- Display Calculated Dimensions -->
       <div>
@@ -167,6 +161,12 @@
                 <input type="number" id="leftSpaceAngleInput" value="3" min="0" max="45" step="0.1">
             </div>
         </div>
+        <div>
+            <label for="leftVpOffsetInput">Left VP Offset (cm):</label>
+            <div class="input-row">
+                <input type="number" id="leftVpOffsetInput" value="5" min="0" max="20" step="1">
+            </div>
+        </div>
     </fieldset>
 
     <fieldset class="controls">
@@ -187,6 +187,12 @@
             <label for="rightSpaceAngleInput">Space Angle (deg):</label>
             <div class="input-row">
                 <input type="number" id="rightSpaceAngleInput" value="2.5" min="0" max="45" step="0.1">
+            </div>
+        </div>
+        <div>
+            <label for="rightVpOffsetInput">Right VP Offset (cm):</label>
+            <div class="input-row">
+                <input type="number" id="rightVpOffsetInput" value="5" min="0" max="20" step="1">
             </div>
         </div>
     </fieldset>
@@ -260,17 +266,18 @@
   // Global control elements
   const innerWidthInput = document.getElementById('innerWidthInput');
   const innerHeightInput = document.getElementById('innerHeightInput');
-  const vpOffsetInput = document.getElementById('vpOffsetInput');
 
   // Get Left Door Setting control elements
   const leftNumSectorsInput = document.getElementById('leftNumSectorsInput');
   const leftBlackAngleInput = document.getElementById('leftBlackAngleInput');
   const leftSpaceAngleInput = document.getElementById('leftSpaceAngleInput');
+  const leftVpOffsetInput = document.getElementById('leftVpOffsetInput');
 
   // Get Right Door Setting control elements
   const rightNumSectorsInput = document.getElementById('rightNumSectorsInput');
   const rightBlackAngleInput = document.getElementById('rightBlackAngleInput');
   const rightSpaceAngleInput = document.getElementById('rightSpaceAngleInput');
+  const rightVpOffsetInput = document.getElementById('rightVpOffsetInput');
 
   // --- Door Properties (Constants and Dynamic State) ---
   const scale = 15; // Pixels per cm
@@ -283,10 +290,9 @@
   // State variables - Global
   let innerWidthCm = 40;
   let innerHeightCm = 20;
-  let vpOffsetYCm = 5;
 
   // Calculated global dimensions (will be updated in updateAndRedraw)
-  let doorWidthCm, doorHeightCm, doorWidthPx, doorHeightPx, vpOffsetYPx;
+  let doorWidthCm, doorHeightCm, doorWidthPx, doorHeightPx;
 
   // --- Door States (Position and Settings) ---
   let leftDoorState = {
@@ -294,6 +300,7 @@
     numBlackSectors: 17,
     blackSectorDeg: 4,
     spaceSectorDeg: 3,
+    vpOffsetYCm: 5,
     blackSectorRad: 0, // Calculated
     spaceSectorRad: 0  // Calculated
   };
@@ -302,6 +309,7 @@
     numBlackSectors: 19,
     blackSectorDeg: 3.5,
     spaceSectorDeg: 2.5,
+    vpOffsetYCm: 5,
     blackSectorRad: 0, // Calculated
     spaceSectorRad: 0  // Calculated
   };
@@ -320,17 +328,18 @@
     // Read global values from inputs
     innerWidthCm = parseFloat(innerWidthInput.value);
     innerHeightCm = parseFloat(innerHeightInput.value);
-    vpOffsetYCm = parseFloat(vpOffsetInput.value);
 
     // Read left door settings values from inputs
     leftDoorState.numBlackSectors = parseInt(leftNumSectorsInput.value);
     leftDoorState.blackSectorDeg = parseFloat(leftBlackAngleInput.value);
     leftDoorState.spaceSectorDeg = parseFloat(leftSpaceAngleInput.value);
+    leftDoorState.vpOffsetYCm = parseFloat(leftVpOffsetInput.value);
 
     // Read right door settings values from inputs
     rightDoorState.numBlackSectors = parseInt(rightNumSectorsInput.value);
     rightDoorState.blackSectorDeg = parseFloat(rightBlackAngleInput.value);
     rightDoorState.spaceSectorDeg = parseFloat(rightSpaceAngleInput.value);
+    rightDoorState.vpOffsetYCm = parseFloat(rightVpOffsetInput.value);
 
     // Recalculate total door dimensions based on inner dimensions + border
     doorWidthCm = innerWidthCm + (borderWidthCm * 2);
@@ -340,7 +349,6 @@
     borderWidthPx = borderWidthCm * scale;
     doorWidthPx = doorWidthCm * scale;
     doorHeightPx = doorHeightCm * scale;
-    vpOffsetYPx = vpOffsetYCm * scale;
     sectorRadiusPx = sectorRadiusCm * scale;
 
     // Recalculate door-specific pixel values (radians)
@@ -401,11 +409,12 @@
 
   // --- Draw Single Door and VP (SVG Version) ---
   function drawDoorSVG(doorState, groupElement, frameElement, vpElement, sectorsGroupElement, clipRectElement) {
-    const { x, y, numBlackSectors, blackSectorRad, spaceSectorRad } = doorState;
+    const { x, y, numBlackSectors, blackSectorRad, spaceSectorRad, vpOffsetYCm } = doorState;
 
     // --- Calculations ---
     const innerWidthPx = doorWidthPx - (borderWidthPx * 2);
     const innerHeightPx = doorHeightPx - (borderWidthPx * 2);
+    const vpOffsetYPx = vpOffsetYCm * scale;
     // VP coordinates are relative to the door group's origin (0,0)
     const vpCenterX = doorWidthPx / 2;
     const vpCenterY = doorHeightPx + vpOffsetYPx;
@@ -629,15 +638,16 @@
   // Global
   innerWidthInput.addEventListener('input', updateAndRedraw);
   innerHeightInput.addEventListener('input', updateAndRedraw);
-  vpOffsetInput.addEventListener('input', updateAndRedraw);
   // Left Door Settings
   leftNumSectorsInput.addEventListener('input', updateAndRedraw);
   leftBlackAngleInput.addEventListener('input', updateAndRedraw);
   leftSpaceAngleInput.addEventListener('input', updateAndRedraw);
+  leftVpOffsetInput.addEventListener('input', updateAndRedraw);
   // Right Door Settings
   rightNumSectorsInput.addEventListener('input', updateAndRedraw);
   rightBlackAngleInput.addEventListener('input', updateAndRedraw);
   rightSpaceAngleInput.addEventListener('input', updateAndRedraw);
+  rightVpOffsetInput.addEventListener('input', updateAndRedraw);
 
   // Settings Toggle
   hamburgerBtn.addEventListener('click', () => {
