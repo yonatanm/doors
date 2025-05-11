@@ -115,13 +115,13 @@
       <div>
         <label for="innerWidthInput">Inner Width (cm):</label>
         <div class="input-row">
-            <input type="number" id="innerWidthInput" value="40" min="10" max="100" step="1">
+            <input type="number" id="innerWidthInput" value="49" min="10" max="100" step="1">
         </div>
       </div>
       <div>
         <label for="innerHeightInput">Inner Height (cm):</label>
         <div class="input-row">
-            <input type="number" id="innerHeightInput" value="20" min="10" max="60" step="1">
+            <input type="number" id="innerHeightInput" value="27" min="10" max="60" step="1">
         </div>
       </div>
 
@@ -281,15 +281,13 @@
 
   // --- Door Properties (Constants and Dynamic State) ---
   const scale = 15; // Pixels per cm
-  const borderWidthCm = 2;
+  const borderWidthCm = 3;
   let borderWidthPx = borderWidthCm * scale; // Will be updated
   const vpRadiusPx = 1;
-  const sectorRadiusCm = 37;
-  let sectorRadiusPx = sectorRadiusCm * scale; // Will be updated
 
   // State variables - Global
-  let innerWidthCm = 40;
-  let innerHeightCm = 20;
+  let innerWidthCm = 49;
+  let innerHeightCm = 27;
 
   // Calculated global dimensions (will be updated in updateAndRedraw)
   let doorWidthCm, doorHeightCm, doorWidthPx, doorHeightPx;
@@ -302,7 +300,9 @@
     spaceSectorDeg: 3,
     vpOffsetYCm: 5,
     blackSectorRad: 0, // Calculated
-    spaceSectorRad: 0  // Calculated
+    spaceSectorRad: 0,  // Calculated
+    sectorRadiusCm: 0,  // Calculated dynamically
+    sectorRadiusPx: 0   // Calculated dynamically
   };
   let rightDoorState = {
     x: 0, y: 0, // Position managed by group transform
@@ -311,7 +311,9 @@
     spaceSectorDeg: 2.5,
     vpOffsetYCm: 5,
     blackSectorRad: 0, // Calculated
-    spaceSectorRad: 0  // Calculated
+    spaceSectorRad: 0, // Calculated
+    sectorRadiusCm: 0,  // Calculated dynamically
+    sectorRadiusPx: 0   // Calculated dynamically
   };
 
   // --- Drag State ---
@@ -349,7 +351,20 @@
     borderWidthPx = borderWidthCm * scale;
     doorWidthPx = doorWidthCm * scale;
     doorHeightPx = doorHeightCm * scale;
-    sectorRadiusPx = sectorRadiusCm * scale;
+
+    // Calculate door-specific sector radius based on the new formula
+    // Formula: sqrt((innerHeightCm + borderWidthCm + vpOffsetYCm)^2 + (innerWidthCm/2)^2)
+    leftDoorState.sectorRadiusCm = 50+Math.sqrt(
+        Math.pow(innerHeightCm + borderWidthCm + leftDoorState.vpOffsetYCm, 2) +
+        Math.pow(innerWidthCm / 2, 2)
+    );
+    leftDoorState.sectorRadiusPx = leftDoorState.sectorRadiusCm * scale;
+
+    rightDoorState.sectorRadiusCm = 50+Math.sqrt(
+        Math.pow(innerHeightCm + borderWidthCm + rightDoorState.vpOffsetYCm, 2) +
+        Math.pow(innerWidthCm / 2, 2)
+    );
+    rightDoorState.sectorRadiusPx = rightDoorState.sectorRadiusCm * scale;
 
     // Recalculate door-specific pixel values (radians)
     leftDoorState.blackSectorRad = leftDoorState.blackSectorDeg * Math.PI / 180;
@@ -409,7 +424,7 @@
 
   // --- Draw Single Door and VP (SVG Version) ---
   function drawDoorSVG(doorState, groupElement, frameElement, vpElement, sectorsGroupElement, clipRectElement) {
-    const { x, y, numBlackSectors, blackSectorRad, spaceSectorRad, vpOffsetYCm } = doorState;
+    const { x, y, numBlackSectors, blackSectorRad, spaceSectorRad, vpOffsetYCm, sectorRadiusPx } = doorState;
 
     // --- Calculations ---
     const innerWidthPx = doorWidthPx - (borderWidthPx * 2);
