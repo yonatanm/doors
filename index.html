@@ -92,6 +92,25 @@
       color: #555;
   }
 
+  /* --- Print Button --- */
+  #print-btn {
+      position: fixed;
+      top: 15px;
+      right: 15px;
+      z-index: 1001;
+      font-size: 16px;
+      padding: 8px 16px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+  }
+  
+  #print-btn:hover {
+      background-color: #45a049;
+  }
+
   /* --- SVG Specific Styles --- */
   .door-group {
       cursor: grab;
@@ -100,12 +119,107 @@
       cursor: grabbing;
   }
 
+  /* --- Print Specific Styles --- */
+  @media print {
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: auto;
+      height: auto;
+      overflow: visible !important; /* Ensure root elements also allow content to overflow for tiling */
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    #hamburger-btn, #settings-panel, #close-settings-btn, #print-btn {
+      display: none !important;
+    }
 
+    #print-wrapper {
+      display: block;
+      position: absolute !important;
+      left: 0 !important;
+      top: 0 !important;
+      overflow: visible !important;
+      page-break-inside: avoid !important;
+      break-inside: avoid !important;
+      box-decoration-break: clone !important;
+      /* Dimensions will be set by JavaScript */
+    }
+
+    #doorSvg {
+      display: block !important;
+      width: 100% !important; 
+      height: 100% !important;
+      overflow: visible !important;
+      max-width: none !important;
+      max-height: none !important;
+      transform-origin: top left !important;
+    }
+
+    /* Individual door groups */
+    .door-group {
+      overflow: visible !important;
+      page-break-inside: avoid !important;
+      break-inside: avoid !important;
+    }
+
+    /* Style element to be populated by JavaScript for print dimensions */
+    #print-svg-size-style {
+        display: block; /* Should be visible to the print engine */
+    }
+    
+    @page {
+      size: auto; /* Auto size based on content */
+      margin: 0.5cm; /* Small margin for printing */
+    }
+  }
+</style>
+<style id="print-css">
+  /* Print-specific CSS will be dynamically generated */
 </style>
 </head>
 <body>
 
+<div id="print-wrapper">
+  <svg id="doorSvg" width="1" height="1">
+      <defs>
+          <!-- Clip Paths for Door Inner Areas -->
+          <clipPath id="left-door-clip">
+              <rect id="left-clip-rect" x="0" y="0" width="100" height="100" />
+          </clipPath>
+          <clipPath id="right-door-clip">
+              <rect id="right-clip-rect" x="0" y="0" width="100" height="100" />
+          </clipPath>
+      </defs>
+
+      <!-- Left Door Group -->
+      <g id="left-door-group" class="door-group" transform="translate(0, 0)">
+          <!-- Frame -->
+          <rect id="left-door-frame" x="0" y="0" width="100" height="100" fill="none" stroke="black" stroke-width="1" />
+          <!-- Sectors (Clipped) -->
+          <g id="left-sectors-group" clip-path="url(#left-door-clip)">
+              <!-- Sector paths will be generated here -->
+          </g>
+          <!-- Vanishing Point -->
+          <circle id="left-vp" cx="50" cy="110" r="1" fill="blue" />
+      </g>
+
+      <!-- Right Door Group -->
+      <g id="right-door-group" class="door-group" transform="translate(150, 0)">
+           <!-- Frame -->
+          <rect id="right-door-frame" x="0" y="0" width="100" height="100" fill="none" stroke="black" stroke-width="1" />
+          <!-- Sectors (Clipped) -->
+          <g id="right-sectors-group" clip-path="url(#right-door-clip)">
+              <!-- Sector paths will be generated here -->
+          </g>
+          <!-- Vanishing Point -->
+          <circle id="right-vp" cx="50" cy="110" r="1" fill="blue" />
+      </g>
+  </svg>
+</div>
+
 <button id="hamburger-btn">☰</button>
+<button id="print-btn">Print</button>
 
 <div class="settings-container" id="settings-panel">
     <button id="close-settings-btn">×</button>
@@ -164,7 +278,7 @@
         <div>
             <label for="leftVpOffsetInput">Left VP Offset (cm):</label>
             <div class="input-row">
-                <input type="number" id="leftVpOffsetInput" value="5" min="0" max="20" step="1">
+                <input type="number" id="leftVpOffsetInput" value="8" min="0" max="20" step="1">
             </div>
         </div>
     </fieldset>
@@ -192,48 +306,11 @@
         <div>
             <label for="rightVpOffsetInput">Right VP Offset (cm):</label>
             <div class="input-row">
-                <input type="number" id="rightVpOffsetInput" value="5" min="0" max="20" step="1">
+                <input type="number" id="rightVpOffsetInput" value="8" min="0" max="20" step="1">
             </div>
         </div>
     </fieldset>
 </div>
-
-<!-- SVG Element replaces Canvas -->
-<svg id="doorSvg" width="1500" height="750">
-    <defs>
-        <!-- Clip Paths for Door Inner Areas -->
-        <clipPath id="left-door-clip">
-            <rect id="left-clip-rect" x="0" y="0" width="100" height="100" />
-        </clipPath>
-        <clipPath id="right-door-clip">
-            <rect id="right-clip-rect" x="0" y="0" width="100" height="100" />
-        </clipPath>
-    </defs>
-
-    <!-- Left Door Group -->
-    <g id="left-door-group" class="door-group" transform="translate(0, 0)">
-        <!-- Frame -->
-        <rect id="left-door-frame" x="0" y="0" width="100" height="100" fill="none" stroke="black" stroke-width="1" />
-        <!-- Sectors (Clipped) -->
-        <g id="left-sectors-group" clip-path="url(#left-door-clip)">
-            <!-- Sector paths will be generated here -->
-        </g>
-        <!-- Vanishing Point -->
-        <circle id="left-vp" cx="50" cy="110" r="1" fill="blue" />
-    </g>
-
-    <!-- Right Door Group -->
-    <g id="right-door-group" class="door-group" transform="translate(150, 0)">
-         <!-- Frame -->
-        <rect id="right-door-frame" x="0" y="0" width="100" height="100" fill="none" stroke="black" stroke-width="1" />
-        <!-- Sectors (Clipped) -->
-        <g id="right-sectors-group" clip-path="url(#right-door-clip)">
-            <!-- Sector paths will be generated here -->
-        </g>
-        <!-- Vanishing Point -->
-        <circle id="right-vp" cx="50" cy="110" r="1" fill="blue" />
-    </g>
-</svg>
 
 <script>
   // --- Get SVG and Control Elements ---
@@ -262,6 +339,7 @@
   const settingsPanel = document.getElementById('settings-panel');
   const hamburgerBtn = document.getElementById('hamburger-btn');
   const closeSettingsBtn = document.getElementById('close-settings-btn');
+  const printBtn = document.getElementById('print-btn');
 
   // Global control elements
   const innerWidthInput = document.getElementById('innerWidthInput');
@@ -298,7 +376,7 @@
     numBlackSectors: 17,
     blackSectorDeg: 4,
     spaceSectorDeg: 3,
-    vpOffsetYCm: 5,
+    vpOffsetYCm: 8,
     blackSectorRad: 0, // Calculated
     spaceSectorRad: 0,  // Calculated
     sectorRadiusCm: 0,  // Calculated dynamically
@@ -309,7 +387,7 @@
     numBlackSectors: 19,
     blackSectorDeg: 3.5,
     spaceSectorDeg: 2.5,
-    vpOffsetYCm: 5,
+    vpOffsetYCm: 8,
     blackSectorRad: 0, // Calculated
     spaceSectorRad: 0, // Calculated
     sectorRadiusCm: 0,  // Calculated dynamically
@@ -324,6 +402,14 @@
 
   // --- SVG Namespace ---
   const svgNS = "http://www.w3.org/2000/svg";
+
+  // Style element for print dimensions
+  let printSvgSizeStyle = document.getElementById('print-svg-size-style');
+  if (!printSvgSizeStyle) {
+      printSvgSizeStyle = document.createElement('style');
+      printSvgSizeStyle.id = 'print-svg-size-style';
+      document.head.appendChild(printSvgSizeStyle);
+  }
 
   // --- Update State from Inputs & Redraw ---
   function updateAndRedraw() {
@@ -354,13 +440,13 @@
 
     // Calculate door-specific sector radius based on the new formula
     // Formula: sqrt((innerHeightCm + borderWidthCm + vpOffsetYCm)^2 + (innerWidthCm/2)^2)
-    leftDoorState.sectorRadiusCm = 50+Math.sqrt(
+    leftDoorState.sectorRadiusCm = 2.5 + Math.sqrt(
         Math.pow(innerHeightCm + borderWidthCm + leftDoorState.vpOffsetYCm, 2) +
         Math.pow(innerWidthCm / 2, 2)
     );
     leftDoorState.sectorRadiusPx = leftDoorState.sectorRadiusCm * scale;
 
-    rightDoorState.sectorRadiusCm = 50+Math.sqrt(
+    rightDoorState.sectorRadiusCm = 2.5+Math.sqrt(
         Math.pow(innerHeightCm + borderWidthCm + rightDoorState.vpOffsetYCm, 2) +
         Math.pow(innerWidthCm / 2, 2)
     );
@@ -372,18 +458,56 @@
     rightDoorState.blackSectorRad = rightDoorState.blackSectorDeg * Math.PI / 180;
     rightDoorState.spaceSectorRad = rightDoorState.spaceSectorDeg * Math.PI / 180;
 
-    // --- Dynamic SVG Resizing ---
-    const targetSvgWidth = doorWidthPx * 2;
-    const targetSvgHeight = targetSvgWidth / 2; // Maintain 2:1 aspect ratio
+    // --- Define SVG ViewBox and On-Screen Dimensions ---
+    const viewBoxWidthPx = doorWidthPx * 2; // Two doors side-by-side
+    const viewBoxHeightPx = doorHeightPx;    // Height of a single door
 
-    if (svg.width.baseVal.value !== targetSvgWidth || svg.height.baseVal.value !== targetSvgHeight) {
-        console.log(`Resizing SVG: Target Width=${targetSvgWidth.toFixed(1)}, Target Height=${targetSvgHeight.toFixed(1)}`);
-        svg.setAttribute('width', targetSvgWidth);
-        svg.setAttribute('height', targetSvgHeight);
-        // Note: The viewBox attribute could be used for scaling, but for direct resizing,
-        // simply setting width/height is sufficient here.
+    svg.setAttribute('viewBox', `0 0 ${viewBoxWidthPx} ${viewBoxHeightPx}`);
+
+    // --- Dynamic SVG Resizing (for screen) ---
+    // Set screen dimensions to match the viewBox for a tight fit
+    if (svg.width.baseVal.value !== viewBoxWidthPx || svg.height.baseVal.value !== viewBoxHeightPx) {
+        console.log(`Resizing SVG for screen: viewBox="0 0 ${viewBoxWidthPx} ${viewBoxHeightPx}", width=${viewBoxWidthPx}px, height=${viewBoxHeightPx}px`);
+        svg.setAttribute('width', viewBoxWidthPx);
+        svg.setAttribute('height', viewBoxHeightPx);
     }
-    // --- End Resizing ---
+    // --- End Screen Resizing ---
+
+    // --- Update Print Specific SVG Sizing ---
+    // For printing, the #print-wrapper gets the cm dimensions, and SVG fills it.
+    const printSvgWidthCm = doorWidthCm * 2;
+    const printSvgHeightCm = doorHeightCm;
+    printSvgSizeStyle.textContent = `
+      @media print {
+        #print-wrapper {
+          width: ${printSvgWidthCm}cm !important;
+          height: ${printSvgHeightCm}cm !important;
+          overflow: visible !important; 
+          page-break-inside: avoid !important;
+          break-inside: avoid !important;
+          transform-origin: top left !important;
+        }
+        
+        #doorSvg {
+          width: ${printSvgWidthCm}cm !important;
+          height: ${printSvgHeightCm}cm !important;
+          display: block !important;
+          overflow: visible !important;
+          transform-origin: top left !important;
+          transform: scale(1) !important;
+        }
+        
+        /* Define left and right door positions for print */
+        #left-door-group {
+          transform: translate(${leftDoorState.x}px, ${leftDoorState.y}px) !important;
+        }
+        
+        #right-door-group {
+          transform: translate(${rightDoorState.x}px, ${rightDoorState.y}px) !important;
+        }
+      }
+    `;
+    // --- End Print Sizing ---
 
     // Update display elements
     if (displayDoorWidthCm) {
@@ -393,7 +517,7 @@
         displayDoorHeightCm.textContent = `${doorHeightCm.toFixed(1)} cm`;
     }
 
-    // Get SVG viewport dimensions
+    // Get SVG viewport dimensions (now reflects the new screen size)
     const svgWidth = svg.width.baseVal.value;
     const svgHeight = svg.height.baseVal.value;
 
@@ -403,12 +527,14 @@
       leftDoorState.x = 0;
       rightDoorState.x = doorWidthPx; // Start right door immediately after left
       // Center vertically within SVG viewport
+      // Since svgHeight is now doorHeightPx, centeredY will be 0
       const centeredY = (svgHeight - doorHeightPx) / 2;
       leftDoorState.y = centeredY;
       rightDoorState.y = centeredY;
     }
     // If dragging, update Y position if height changed
     else {
+        // Since svgHeight is now doorHeightPx, centeredY will be 0
         const centeredY = (svgHeight - doorHeightPx) / 2;
         leftDoorState.y = centeredY;
         rightDoorState.y = centeredY;
@@ -672,6 +798,83 @@
   closeSettingsBtn.addEventListener('click', () => {
       settingsPanel.classList.remove('active');
   });
+  
+  // Print Button
+  printBtn.addEventListener('click', () => {
+    preparePrint();
+  });
+
+  // Prepare print function
+  function preparePrint() {
+    // Ensure all calculations are up-to-date
+    updateAndRedraw();
+    
+    // Hide settings panel before printing
+    settingsPanel.classList.remove('active');
+    
+    // Get physical dimensions in cm
+    const printWidthCm = doorWidthCm * 2;  // Two doors side by side
+    const printHeightCm = doorHeightCm;
+    
+    // Typical page sizes (in cm, with 1cm margins subtracted)
+    const a4WidthCm = 19; // A4 width (21cm - 2cm margins)
+    const a4HeightCm = 27.7; // A4 height (29.7cm - 2cm margins)
+    
+    // Calculate how many pages needed
+    const horizontalPages = Math.ceil(printWidthCm / a4WidthCm);
+    const verticalPages = Math.ceil(printHeightCm / a4HeightCm);
+    
+    console.log(`Print dimensions: ${printWidthCm}cm x ${printHeightCm}cm`);
+    console.log(`Pages needed: ${horizontalPages} x ${verticalPages}`);
+    
+    // Create print CSS that forces physical dimensions
+    const printCSS = document.getElementById('print-css');
+    printCSS.textContent = `
+      @media print {
+        @page {
+          size: auto;
+          margin: 1cm;
+        }
+        
+        html, body {
+          margin: 0 !important;
+          padding: 0 !important;
+          width: auto !important;
+          height: auto !important;
+        }
+        
+        #hamburger-btn, #settings-panel, #close-settings-btn, #print-btn {
+          display: none !important;
+        }
+        
+        #print-wrapper {
+          position: absolute !important;
+          top: 0 !important;
+          left: 0 !important;
+          width: ${printWidthCm}cm !important;
+          height: ${printHeightCm}cm !important;
+          overflow: visible !important;
+        }
+        
+        #doorSvg {
+          width: ${printWidthCm}cm !important;
+          height: ${printHeightCm}cm !important;
+          overflow: visible !important;
+        }
+        
+        /* Force the browser to print the entire document, page by page */
+        body {
+          width: ${printWidthCm}cm !important;
+          height: ${printHeightCm}cm !important;
+        }
+      }
+    `;
+    
+    // Delay print to allow CSS to apply
+    setTimeout(() => {
+      window.print();
+    }, 300);
+  }
 
   // --- Initial Setup ---
   updateAndRedraw(); // Calculate initial dimensions/settings and draw SVG
