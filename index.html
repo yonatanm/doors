@@ -260,7 +260,7 @@
         <div>
             <label for="leftNumSectorsInput">Sectors:</label>
             <div class="input-row">
-                <input type="number" id="leftNumSectorsInput" value="17" min="1" max="50" step="1">
+                <input type="number" id="leftNumSectorsInput" value="19" min="1" max="50" step="1">
             </div>
         </div>
         <div>
@@ -288,19 +288,19 @@
         <div>
             <label for="rightNumSectorsInput">Sectors:</label>
             <div class="input-row">
-                <input type="number" id="rightNumSectorsInput" value="19" min="1" max="50" step="1">
+                <input type="number" id="rightNumSectorsInput" value="17" min="1" max="50" step="1">
             </div>
         </div>
         <div>
             <label for="rightBlackAngleInput">Sector Angle (deg):</label>
             <div class="input-row">
-                <input type="number" id="rightBlackAngleInput" value="3.5" min="0.1" max="45" step="0.1">
+                <input type="number" id="rightBlackAngleInput" value="5" min="0.1" max="45" step="0.1">
             </div>
         </div>
         <div>
             <label for="rightSpaceAngleInput">Space Angle (deg):</label>
             <div class="input-row">
-                <input type="number" id="rightSpaceAngleInput" value="2.5" min="0" max="45" step="0.1">
+                <input type="number" id="rightSpaceAngleInput" value="3" min="0" max="45" step="0.1">
             </div>
         </div>
         <div>
@@ -656,6 +656,7 @@
   // --- Event Handlers (Common Logic for SVG Drag) ---
   let startDragSVGX, startDragSVGY; // Use SVG coordinates
   let initialTranslateX; // Store initial transform x of the dragged group
+  const keyMoveStep = 5; // Pixels to move door with each keypress
 
  function handleDragStartSVG(event) {
     const coords = getSVGCoordinates(event);
@@ -739,6 +740,69 @@
      activeDraggedElement = null;
      // Optional: redrawSVG() could be called here if there were other drag-related visual changes
   }
+
+  // --- Move Door with Keyboard ---
+  function moveRightDoor(direction) {
+    // Calculate new position
+    let newX = rightDoorState.x;
+    
+    if (direction === 'left') {
+      newX -= keyMoveStep;
+    } else if (direction === 'right') {
+      newX += keyMoveStep;
+    }
+    
+    // Apply constraints
+    const svgWidth = svg.width.baseVal.value;
+    newX = Math.max(0, newX); // Prevent moving past left edge
+    newX = Math.min(newX, svgWidth - doorWidthPx); // Prevent moving past right edge
+    
+    // Update position
+    rightDoorState.x = newX;
+    rightDoorGroup.setAttribute('transform', `translate(${newX}, ${rightDoorState.y})`);
+  }
+
+  // Move left door with keyboard
+  function moveLeftDoor(direction) {
+    // Calculate new position
+    let newX = leftDoorState.x;
+    
+    if (direction === 'left') {
+      newX -= keyMoveStep;
+    } else if (direction === 'right') {
+      newX += keyMoveStep;
+    }
+    
+    // Apply constraints
+    const svgWidth = svg.width.baseVal.value;
+    newX = Math.max(0, newX); // Prevent moving past left edge
+    newX = Math.min(newX, svgWidth - doorWidthPx); // Prevent moving past right edge
+    
+    // Update position
+    leftDoorState.x = newX;
+    leftDoorGroup.setAttribute('transform', `translate(${newX}, ${leftDoorState.y})`);
+  }
+
+  // --- Keyboard Event Listener ---
+  window.addEventListener('keydown', (e) => {
+    // Handle arrow keys for right door
+    if (e.key === 'ArrowLeft') {
+      moveRightDoor('left');
+      e.preventDefault(); // Prevent scrolling
+    } else if (e.key === 'ArrowRight') {
+      moveRightDoor('right');
+      e.preventDefault(); // Prevent scrolling
+    }
+    
+    // Handle a/d keys for left door
+    if (e.key === 'a' || e.key === 'A') {
+      moveLeftDoor('left');
+      e.preventDefault(); // Prevent scrolling
+    } else if (e.key === 'd' || e.key === 'D') {
+      moveLeftDoor('right');
+      e.preventDefault(); // Prevent scrolling
+    }
+  });
 
   // --- Mouse Event Listeners ---
   svg.addEventListener('mousedown', (e) => {
