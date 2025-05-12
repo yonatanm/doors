@@ -183,6 +183,21 @@
         </div>
       </div>
 
+      <!-- Door Visibility Controls -->
+      <div style="margin-top: 20px; border-top: 1px solid #ddd; padding-top: 20px;">
+        <label>Door Visibility:</label>
+        <div style="display: flex; gap: 15px; margin-top: 10px;">
+          <div style="display: flex; align-items: center;">
+            <input type="checkbox" id="leftDoorVisibility" checked style="width: auto; margin-right: 5px;">
+            <label for="leftDoorVisibility" style="display: inline; margin: 0;">Left Door</label>
+          </div>
+          <div style="display: flex; align-items: center;">
+            <input type="checkbox" id="rightDoorVisibility" checked style="width: auto; margin-right: 5px;">
+            <label for="rightDoorVisibility" style="display: inline; margin: 0;">Right Door</label>
+          </div>
+        </div>
+      </div>
+
     </fieldset>
 
     <fieldset class="controls">
@@ -279,12 +294,14 @@
   const leftBlackAngleInput = document.getElementById('leftBlackAngleInput');
   const leftSpaceAngleInput = document.getElementById('leftSpaceAngleInput');
   const leftVpOffsetInput = document.getElementById('leftVpOffsetInput');
+  const leftDoorVisibility = document.getElementById('leftDoorVisibility');
 
   // Get Right Door Setting control elements
   const rightNumSectorsInput = document.getElementById('rightNumSectorsInput');
   const rightBlackAngleInput = document.getElementById('rightBlackAngleInput');
   const rightSpaceAngleInput = document.getElementById('rightSpaceAngleInput');
   const rightVpOffsetInput = document.getElementById('rightVpOffsetInput');
+  const rightDoorVisibility = document.getElementById('rightDoorVisibility');
 
   // --- Door Properties (Constants and Dynamic State) ---
   const scale = 15; // Pixels per cm
@@ -309,7 +326,8 @@
     blackSectorRad: 0, // Calculated
     spaceSectorRad: 0,  // Calculated
     sectorRadiusCm: 0,  // Calculated dynamically
-    sectorRadiusPx: 0   // Calculated dynamically
+    sectorRadiusPx: 0,   // Calculated dynamically
+    visible: true  // Door visibility state
   };
   let rightDoorState = {
     x: 0, y: 0, // Position managed by group transform
@@ -320,7 +338,8 @@
     blackSectorRad: 0, // Calculated
     spaceSectorRad: 0, // Calculated
     sectorRadiusCm: 0,  // Calculated dynamically
-    sectorRadiusPx: 0   // Calculated dynamically
+    sectorRadiusPx: 0,   // Calculated dynamically
+    visible: true  // Door visibility state
   };
 
   // --- Drag State ---
@@ -518,6 +537,10 @@
     // No need to clear SVG like canvas, just update elements
     drawDoorSVG(leftDoorState, leftDoorGroup, leftDoorFrame, leftVp, leftSectorsGroup, leftClipRect);
     drawDoorSVG(rightDoorState, rightDoorGroup, rightDoorFrame, rightVp, rightSectorsGroup, rightClipRect);
+    
+    // Update visibility of doors based on door state
+    leftDoorGroup.style.display = leftDoorState.visible ? 'block' : 'none';
+    rightDoorGroup.style.display = rightDoorState.visible ? 'block' : 'none';
   }
 
   // --- Helper to get SVG coordinates from mouse/touch event ---
@@ -733,11 +756,20 @@
   leftBlackAngleInput.addEventListener('input', updateAndRedraw);
   leftSpaceAngleInput.addEventListener('input', updateAndRedraw);
   leftVpOffsetInput.addEventListener('input', updateAndRedraw);
+  leftDoorVisibility.addEventListener('change', function() {
+    leftDoorState.visible = this.checked;
+    redrawSVG();
+  });
+  
   // Right Door Settings
   rightNumSectorsInput.addEventListener('input', updateAndRedraw);
   rightBlackAngleInput.addEventListener('input', updateAndRedraw);
   rightSpaceAngleInput.addEventListener('input', updateAndRedraw);
   rightVpOffsetInput.addEventListener('input', updateAndRedraw);
+  rightDoorVisibility.addEventListener('change', function() {
+    rightDoorState.visible = this.checked;
+    redrawSVG();
+  });
 
   // Settings Toggle
   hamburgerBtn.addEventListener('click', () => {
