@@ -1,4 +1,4 @@
-  <svg id="doorSvg" width="1725" height="495" viewBox="0 0 1725 495">
+  <svg id="doorSvg" width="1770" height="570" viewBox="0 0 1770 570">
       <defs>
           <!-- Clip Paths for Door Inner Areas -->
           <clipPath id="left-door-clip">
@@ -10,7 +10,7 @@
       </defs>
 
       <!-- Left Door Group -->
-      <g id="left-door-group" class="door-group" transform="translate(0, 0)" style="display: block;">
+      <g id="left-door-group" class="door-group" transform="translate(30, 37.5)" style="display: block;">
           <!-- Frame -->
           <rect id="left-door-frame" x="0" y="0" width="825" height="495" fill="none" stroke="black" stroke-width="45"></rect>
           <!-- Sectors (Clipped) -->
@@ -20,7 +20,7 @@
       </g>
 
       <!-- Right Door Group -->
-      <g id="right-door-group" class="door-group" transform="translate(873, 0)" style="display: block;">
+      <g id="right-door-group" class="door-group" transform="translate(903, 37.5)" style="display: block;">
            <!-- Frame -->
           <rect id="right-door-frame" x="0" y="0" width="825" height="495" fill="none" stroke="black" stroke-width="45"></rect>
           <!-- Sectors (Clipped) -->

@@ -308,7 +308,8 @@
   const borderWidthCm = 3;
   let borderWidthPx = borderWidthCm * scale; // Will be updated
   const vpRadiusPx = 1;
-  const extraHorizontalSpaceCm = 5; // Added for extra horizontal space
+  const extraHorizontalSpaceCm = 8; // Added for extra horizontal space
+  const extraVerticalSpaceCm = 5; // Added for extra vertical space
 
   // State variables - Global
   let innerWidthCm = 49;
@@ -402,7 +403,7 @@
 
     // --- Define SVG ViewBox and On-Screen Dimensions ---
     const viewBoxWidthPx = (doorWidthPx * 2) + extraHorizontalSpacePx; // Two doors side-by-side + extra space
-    const viewBoxHeightPx = doorHeightPx;    // Height of a single door
+    const viewBoxHeightPx = doorHeightPx + (extraVerticalSpaceCm * scale);    // Height of a single door + extra vertical space
 
     svg.setAttribute('viewBox', `0 0 ${viewBoxWidthPx} ${viewBoxHeightPx}`);
 
@@ -430,18 +431,17 @@
     // Recalculate door positions ONLY if not currently dragging
     if (!isDragging) {
       // Position doors initially: left at 0, right next to it, centered vertically
-      leftDoorState.x = 0;
-      rightDoorState.x = doorWidthPx + (3.2 * scale); // Start right door after left with 3cm gap
-      // Center vertically within SVG viewport
-      // Since svgHeight is now doorHeightPx, centeredY will be 0
-      const centeredY = (svgHeight - doorHeightPx) / 2;
+      leftDoorState.x = 2 * scale; // Move 2cm to the right
+      rightDoorState.x = doorWidthPx + (3.2 * scale) + (2 * scale); // Start right door after left with 3cm gap, shifted 2cm right
+      // Center vertically in the taller viewport
+      const centeredY = ((extraVerticalSpaceCm * scale) / 2); // Position doors in middle of extra vertical space
       leftDoorState.y = centeredY;
       rightDoorState.y = centeredY;
     }
     // If dragging, update Y position if height changed
     else {
-        // Since svgHeight is now doorHeightPx, centeredY will be 0
-        const centeredY = (svgHeight - doorHeightPx) / 2;
+        // Center vertically in the taller viewport
+        const centeredY = ((extraVerticalSpaceCm * scale) / 2); // Position doors in middle of extra vertical space
         leftDoorState.y = centeredY;
         rightDoorState.y = centeredY;
         // Ensure dragged door stays within new bounds after resize (update transform in drag logic)
@@ -665,7 +665,7 @@
     // Apply constraints
     const svgWidth = svg.width.baseVal.value;
     newX = Math.max(0, newX); // Prevent moving past left edge
-    newX = Math.min(newX, svgWidth - doorWidthPx - extraHorizontalSpacePx); // Prevent moving past right edge (1cm buffer)
+    newX = Math.min(newX, svgWidth - doorWidthPx - scale); // Prevent moving past right edge (1cm buffer)
     
     // Update position
     rightDoorState.x = newX;
