@@ -111,7 +111,7 @@
 </head>
 <body>
 
-<div id="print-wrapper">
+<div>
   <svg id="doorSvg" width="1" height="1">
       <defs>
           <!-- Clip Paths for Door Inner Areas -->
@@ -308,6 +308,7 @@
   const borderWidthCm = 3;
   let borderWidthPx = borderWidthCm * scale; // Will be updated
   const vpRadiusPx = 1;
+  const extraHorizontalSpaceCm = 5; // Added for extra horizontal space
 
   // State variables - Global
   let innerWidthCm = 49;
@@ -377,6 +378,7 @@
     borderWidthPx = borderWidthCm * scale;
     doorWidthPx = doorWidthCm * scale;
     doorHeightPx = doorHeightCm * scale;
+    const extraHorizontalSpacePx = extraHorizontalSpaceCm * scale; // Calculate extra space in pixels
 
     // Calculate door-specific sector radius based on the new formula
     // Formula: sqrt((innerHeightCm + borderWidthCm + vpOffsetYCm)^2 + (innerWidthCm/2)^2)
@@ -399,7 +401,7 @@
     rightDoorState.spaceSectorRad = rightDoorState.spaceSectorDeg * Math.PI / 180;
 
     // --- Define SVG ViewBox and On-Screen Dimensions ---
-    const viewBoxWidthPx = doorWidthPx * 2; // Two doors side-by-side
+    const viewBoxWidthPx = (doorWidthPx * 2) + extraHorizontalSpacePx; // Two doors side-by-side + extra space
     const viewBoxHeightPx = doorHeightPx;    // Height of a single door
 
     svg.setAttribute('viewBox', `0 0 ${viewBoxWidthPx} ${viewBoxHeightPx}`);
@@ -429,7 +431,7 @@
     if (!isDragging) {
       // Position doors initially: left at 0, right next to it, centered vertically
       leftDoorState.x = 0;
-      rightDoorState.x = doorWidthPx; // Start right door immediately after left
+      rightDoorState.x = doorWidthPx + (3.2 * scale); // Start right door after left with 3cm gap
       // Center vertically within SVG viewport
       // Since svgHeight is now doorHeightPx, centeredY will be 0
       const centeredY = (svgHeight - doorHeightPx) / 2;
@@ -612,7 +614,7 @@
 
      // Apply constraints
      newTranslateX = Math.max(0, newTranslateX); // Prevent dragging past left edge
-     newTranslateX = Math.min(newTranslateX, svgWidth - doorWidthPx); // Prevent dragging past right edge
+     newTranslateX = Math.min(newTranslateX, svgWidth - doorWidthPx - scale); // Prevent dragging past right edge (1cm buffer)
 
      // Update the transform attribute directly
      // Keep the existing Y translation (which should be up-to-date from updateAndRedraw)
@@ -663,7 +665,7 @@
     // Apply constraints
     const svgWidth = svg.width.baseVal.value;
     newX = Math.max(0, newX); // Prevent moving past left edge
-    newX = Math.min(newX, svgWidth - doorWidthPx); // Prevent moving past right edge
+    newX = Math.min(newX, svgWidth - doorWidthPx - extraHorizontalSpacePx); // Prevent moving past right edge (1cm buffer)
     
     // Update position
     rightDoorState.x = newX;
@@ -684,7 +686,7 @@
     // Apply constraints
     const svgWidth = svg.width.baseVal.value;
     newX = Math.max(0, newX); // Prevent moving past left edge
-    newX = Math.min(newX, svgWidth - doorWidthPx); // Prevent moving past right edge
+    newX = Math.min(newX, svgWidth - doorWidthPx - scale); // Prevent moving past right edge (1cm buffer)
     
     // Update position
     leftDoorState.x = newX;
