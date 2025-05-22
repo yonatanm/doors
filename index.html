@@ -383,13 +383,13 @@
 
     // Calculate door-specific sector radius based on the new formula
     // Formula: sqrt((innerHeightCm + borderWidthCm + vpOffsetYCm)^2 + (innerWidthCm/2)^2)
-    leftDoorState.sectorRadiusCm =2.0+Math.sqrt(
+    leftDoorState.sectorRadiusCm =2.1+Math.sqrt(
         Math.pow(innerHeightCm + borderWidthCm + leftDoorState.vpOffsetYCm, 2) +
         Math.pow(innerWidthCm / 2, 2)
     );
     leftDoorState.sectorRadiusPx = leftDoorState.sectorRadiusCm * scale;
 
-    rightDoorState.sectorRadiusCm = 2.0+Math.sqrt(
+    rightDoorState.sectorRadiusCm = 2.1+Math.sqrt(
         Math.pow(innerHeightCm + borderWidthCm + rightDoorState.vpOffsetYCm, 2) +
         Math.pow(innerWidthCm / 2, 2)
     );
