@@ -100,12 +100,7 @@
       cursor: grabbing;
   }
 
-  /* --- Print Specific Styles --- */
-  @media print {
-    #hamburger-btn, #settings-panel, #close-settings-btn {
-      display: none !important;
-    }
-  }
+
 </style>
 
 </head>
@@ -122,6 +117,11 @@
               <rect id="right-clip-rect" x="0" y="0" width="100" height="100" />
           </clipPath>
       </defs>
+
+      <!-- A4 Page Tiles (Background Layer) -->
+      <g id="a4-tiles-group">
+          <!-- A4 rectangles will be generated here -->
+      </g>
 
       <!-- Left Door Group -->
       <g id="left-door-group" class="door-group" transform="translate(0, 0)">
@@ -194,6 +194,17 @@
           <div style="display: flex; align-items: center;">
             <input type="checkbox" id="rightDoorVisibility" checked style="width: auto; margin-right: 5px;">
             <label for="rightDoorVisibility" style="display: inline; margin: 0;">Right Door</label>
+          </div>
+        </div>
+      </div>
+
+      <!-- A4 Print Preview Controls -->
+      <div style="margin-top: 20px; border-top: 1px solid #ddd; padding-top: 20px;">
+        <label>Print Preview:</label>
+        <div style="display: flex; gap: 15px; margin-top: 10px;">
+          <div style="display: flex; align-items: center;">
+            <input type="checkbox" id="a4TilesVisibility" checked style="width: auto; margin-right: 5px;">
+            <label for="a4TilesVisibility" style="display: inline; margin: 0;">Show A4 Pages</label>
           </div>
         </div>
       </div>
@@ -276,6 +287,9 @@
   const rightVp = document.getElementById('right-vp');
   const rightClipRect = document.getElementById('right-clip-rect');
 
+  // Get A4 tiles group
+  const a4TilesGroup = document.getElementById('a4-tiles-group');
+
   // Get display elements for calculated dimensions
   const displayDoorWidthCm = document.getElementById('displayDoorWidthCm');
   const displayDoorHeightCm = document.getElementById('displayDoorHeightCm');
@@ -303,6 +317,9 @@
   const rightVpOffsetInput = document.getElementById('rightVpOffsetInput');
   const rightDoorVisibility = document.getElementById('rightDoorVisibility');
 
+  // Get A4 tiles visibility control
+  const a4TilesVisibility = document.getElementById('a4TilesVisibility');
+
   // --- Door Properties (Constants and Dynamic State) ---
   const scale = 26.872; // Pixels per cm
   const borderWidthCm = 3;
@@ -310,6 +327,12 @@
   const vpRadiusPx = 1;
   const extraHorizontalSpaceCm = 8; // Added for extra horizontal space
   const extraVerticalSpaceCm = 5; // Added for extra vertical space
+
+  // --- A4 Page Dimensions ---
+  const a4WidthCm = 21.0; // A4 width in cm
+  const a4HeightCm = 29.7; // A4 height in cm
+  const a4WidthPx = a4WidthCm * scale; // A4 width in pixels
+  const a4HeightPx = a4HeightCm * scale; // A4 height in pixels
 
   // State variables - Global
   let innerWidthCm = 49;
@@ -644,9 +667,70 @@
     vpElement.setAttribute('r', vpRadiusPx); // Radius is constant
   }
 
+  // --- Draw A4 Page Tiles ---
+  function drawA4Tiles() {
+    // Clear existing A4 tiles
+    while (a4TilesGroup.firstChild) {
+        a4TilesGroup.removeChild(a4TilesGroup.firstChild);
+    }
+
+    // Get current SVG dimensions
+    const svgWidth = svg.width.baseVal.value;
+    const svgHeight = svg.height.baseVal.value;
+
+    // Calculate how many A4 pages fit horizontally and vertically
+    const tilesX = Math.ceil(svgWidth / a4WidthPx);
+    const tilesY = Math.ceil(svgHeight / a4HeightPx);
+
+    // Create A4 rectangles
+    for (let row = 0; row < tilesY; row++) {
+        for (let col = 0; col < tilesX; col++) {
+            const x = col * a4WidthPx;
+            const y = row * a4HeightPx;
+            
+            // Create A4 rectangle
+            const rect = document.createElementNS(svgNS, 'rect');
+            rect.setAttribute('x', x);
+            rect.setAttribute('y', y);
+            rect.setAttribute('width', a4WidthPx);
+            rect.setAttribute('height', a4HeightPx);
+            rect.setAttribute('fill', 'none');
+            rect.setAttribute('stroke', 'green');
+            rect.setAttribute('stroke-width', '2');
+            rect.setAttribute('stroke-dasharray', '5,5'); // Dashed line for better visibility
+            rect.setAttribute('opacity', '0.7');
+            
+            a4TilesGroup.appendChild(rect);
+            
+            // Add A4 label
+            const text = document.createElementNS(svgNS, 'text');
+            text.setAttribute('x', x + 10);
+            text.setAttribute('y', y + 20);
+            text.setAttribute('font-family', 'Arial, sans-serif');
+            text.setAttribute('font-size', '14');
+            text.setAttribute('fill', 'green');
+            text.setAttribute('font-weight', 'bold');
+            text.setAttribute('opacity', '0.8');
+            text.textContent = `A4 (${col + 1},${row + 1})`;
+            
+            a4TilesGroup.appendChild(text);
+        }
+    }
+  }
+
 
   // --- Redraw SVG ---
   function redrawSVG() {
+    // Draw A4 page tiles first (background layer) if enabled
+    if (a4TilesVisibility.checked) {
+      drawA4Tiles();
+    } else {
+      // Clear A4 tiles if disabled
+      while (a4TilesGroup.firstChild) {
+        a4TilesGroup.removeChild(a4TilesGroup.firstChild);
+      }
+    }
+    
     // No need to clear SVG like canvas, just update elements
     drawDoorSVG(leftDoorState, leftDoorGroup, leftDoorFrame, leftVp, leftSectorsGroup, leftClipRect);
     drawDoorSVG(rightDoorState, rightDoorGroup, rightDoorFrame, rightVp, rightSectorsGroup, rightClipRect);
@@ -881,6 +965,11 @@
   rightVpOffsetInput.addEventListener('input', updateAndRedraw);
   rightDoorVisibility.addEventListener('change', function() {
     rightDoorState.visible = this.checked;
+    redrawSVG();
+  });
+
+  // A4 tiles visibility
+  a4TilesVisibility.addEventListener('change', function() {
     redrawSVG();
   });
 
