@@ -100,6 +100,11 @@
       cursor: grabbing;
   }
 
+  /* Print Button Hover Effect */
+  #printPagesBtn:hover {
+      background-color: #45a049 !important;
+  }
+
 
 </style>
 
@@ -206,6 +211,11 @@
             <input type="checkbox" id="a4TilesVisibility" checked style="width: auto; margin-right: 5px;">
             <label for="a4TilesVisibility" style="display: inline; margin: 0;">Show A4 Pages</label>
           </div>
+        </div>
+        <div style="margin-top: 15px;">
+          <button id="printPagesBtn" style="width: 100%; padding: 12px; font-size: 1.1rem; background-color: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; transition: background-color 0.3s;">
+            🖨️ Print A4 Pages
+          </button>
         </div>
       </div>
 
@@ -319,6 +329,9 @@
 
   // Get A4 tiles visibility control
   const a4TilesVisibility = document.getElementById('a4TilesVisibility');
+  
+  // Get print button
+  const printPagesBtn = document.getElementById('printPagesBtn');
 
   // --- Door Properties (Constants and Dynamic State) ---
   const scale = 26.872; // Pixels per cm
@@ -328,9 +341,9 @@
   const extraHorizontalSpaceCm = 8; // Added for extra horizontal space
   const extraVerticalSpaceCm = 5; // Added for extra vertical space
 
-  // --- A4 Page Dimensions ---
-  const a4WidthCm = 21.0; // A4 width in cm
-  const a4HeightCm = 29.7; // A4 height in cm
+  // --- A4 Page Dimensions (Landscape) ---
+  const a4WidthCm = 29.7; // A4 width in cm (landscape)
+  const a4HeightCm = 21.0; // A4 height in cm (landscape)
   const a4WidthPx = a4WidthCm * scale; // A4 width in pixels
   const a4HeightPx = a4HeightCm * scale; // A4 height in pixels
 
@@ -716,6 +729,355 @@
             a4TilesGroup.appendChild(text);
         }
     }
+     }
+
+  // --- Print A4 Pages ---
+  function printA4Pages() {
+    // Get current SVG dimensions
+    const svgWidth = svg.width.baseVal.value;
+    const svgHeight = svg.height.baseVal.value;
+
+    // Calculate how many A4 pages fit
+    const tilesX = Math.ceil(svgWidth / a4WidthPx);
+    const tilesY = Math.ceil(svgHeight / a4HeightPx);
+
+    let pagesWithContent = [];
+
+    // Check each A4 tile for content
+    for (let row = 0; row < tilesY; row++) {
+      for (let col = 0; col < tilesX; col++) {
+        const tileX = col * a4WidthPx;
+        const tileY = row * a4HeightPx;
+        
+        // Check if this tile has any door content
+        if (hasContentInTile(tileX, tileY, a4WidthPx, a4HeightPx)) {
+          pagesWithContent.push({
+            col: col,
+            row: row,
+            x: tileX,
+            y: tileY,
+            pageNum: pagesWithContent.length + 1
+          });
+        }
+      }
+    }
+
+    if (pagesWithContent.length === 0) {
+      alert('No content found in any A4 pages to print.');
+      return;
+    }
+
+    // Create single page with all A4 tiles arranged vertically
+    createPrintPage(pagesWithContent);
+  }
+
+  // Check if a tile has any door content
+  function hasContentInTile(tileX, tileY, tileWidth, tileHeight) {
+    const tileRight = tileX + tileWidth;
+    const tileBottom = tileY + tileHeight;
+
+    // Check left door if visible
+    if (leftDoorState.visible) {
+      const leftDoorRight = leftDoorState.x + doorWidthPx;
+      const leftDoorBottom = leftDoorState.y + doorHeightPx;
+      
+      // Check if left door overlaps with this tile
+      if (leftDoorState.x < tileRight && leftDoorRight > tileX &&
+          leftDoorState.y < tileBottom && leftDoorBottom > tileY) {
+        return true;
+      }
+    }
+
+    // Check right door if visible
+    if (rightDoorState.visible) {
+      const rightDoorRight = rightDoorState.x + doorWidthPx;
+      const rightDoorBottom = rightDoorState.y + doorHeightPx;
+      
+      // Check if right door overlaps with this tile
+      if (rightDoorState.x < tileRight && rightDoorRight > tileX &&
+          rightDoorState.y < tileBottom && rightDoorBottom > tileY) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  // Create a single print page with all A4 tiles arranged vertically
+  function createPrintPage(pages) {
+    const printWindow = window.open('', '_blank', 'width=800,height=600');
+    
+    if (!printWindow) {
+      alert('Popup blocked! Please allow popups for this site and try again.');
+      return;
+    }
+
+    // Generate HTML for all pages arranged vertically
+    let allPagesHTML = '';
+    
+    pages.forEach((page, index) => {
+      allPagesHTML += `
+        <div class="a4-page" style="page-break-after: always; margin-bottom: 2cm;">
+          <div class="page-index">X:${page.col + 1}, Y:${page.row + 1}</div>
+          <div class="page-info">A4 Page ${page.pageNum} (${page.col + 1},${page.row + 1})</div>
+          <div class="svg-container">
+            ${generateA4SVG(page.x, page.y)}
+          </div>
+        </div>
+      `;
+    });
+
+          const printHTML = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Door A4 Pages (Landscape)</title>
+          <style>
+            @page {
+              margin: 1cm;
+              size: A4 landscape;
+            }
+            body {
+              margin: 0;
+              padding: 0;
+              background: white;
+              font-family: Arial, sans-serif;
+            }
+            .a4-page {
+              width: 29.7cm;
+              height: 21cm;
+              position: relative;
+              background: white;
+              border: 1px solid #ddd;
+              margin-bottom: 1cm;
+            }
+            .page-index {
+              position: absolute;
+              top: 5px;
+              left: 5px;
+              font-size: 14px;
+              color: green;
+              font-weight: bold;
+              z-index: 1000;
+              background: rgba(255,255,255,0.9);
+              padding: 4px 8px;
+              border-radius: 3px;
+              border: 1px solid green;
+            }
+            .page-info {
+              position: absolute;
+              top: 5px;
+              right: 5px;
+              font-size: 10px;
+              color: #666;
+              z-index: 1000;
+              background: rgba(255,255,255,0.8);
+              padding: 2px 4px;
+              border-radius: 2px;
+            }
+            .svg-container {
+              width: 100%;
+              height: 100%;
+              overflow: hidden;
+            }
+            @media print {
+              .a4-page {
+                border: none;
+                margin-bottom: 0;
+              }
+            }
+          </style>
+        </head>
+      <body>
+        <h1 style="text-align: center; margin: 20px 0;">Door A4 Pages for Printing</h1>
+        <p style="text-align: center; margin-bottom: 30px;">
+          Found ${pages.length} page(s) with content. Use browser's print button to print.
+        </p>
+        ${allPagesHTML}
+      </body>
+      </html>
+    `;
+
+    printWindow.document.write(printHTML);
+    printWindow.document.close();
+  }
+
+  // Generate SVG content for a specific A4 tile
+  function generateA4SVG(tileX, tileY) {
+    // Create SVG with A4 viewBox (showing only the content within this tile)
+    let svgContent = `<svg width="29.7cm" height="21cm" viewBox="${tileX} ${tileY} ${a4WidthPx} ${a4HeightPx}" xmlns="http://www.w3.org/2000/svg">`;
+    
+    // Add styles
+    svgContent += `
+      <style>
+        .door-group { cursor: default; }
+        text { font-family: Arial, sans-serif; }
+      </style>
+    `;
+
+    // Add defs if needed (clip paths)
+    svgContent += `<defs>
+      <clipPath id="left-door-clip-print-${tileX}-${tileY}">
+        <rect x="${leftDoorState.x + borderWidthPx / 2}" y="${leftDoorState.y + borderWidthPx / 2}" 
+              width="${doorWidthPx - borderWidthPx}" height="${doorHeightPx - borderWidthPx}" />
+      </clipPath>
+      <clipPath id="right-door-clip-print-${tileX}-${tileY}">
+        <rect x="${rightDoorState.x + borderWidthPx / 2}" y="${rightDoorState.y + borderWidthPx / 2}" 
+              width="${doorWidthPx - borderWidthPx}" height="${doorHeightPx - borderWidthPx}" />
+      </clipPath>
+    </defs>`;
+
+    // Check if left door is in this tile and add it
+    if (leftDoorState.visible && doorIntersectsTile(leftDoorState, tileX, tileY)) {
+      svgContent += generateDoorSVGForPrint(leftDoorState, 'left', `left-door-clip-print-${tileX}-${tileY}`);
+    }
+
+    // Check if right door is in this tile and add it
+    if (rightDoorState.visible && doorIntersectsTile(rightDoorState, tileX, tileY)) {
+      svgContent += generateDoorSVGForPrint(rightDoorState, 'right', `right-door-clip-print-${tileX}-${tileY}`);
+    }
+
+    svgContent += '</svg>';
+    return svgContent;
+  }
+
+  // Check if door intersects with the tile
+  function doorIntersectsTile(doorState, tileX, tileY) {
+    const tileRight = tileX + a4WidthPx;
+    const tileBottom = tileY + a4HeightPx;
+    const doorRight = doorState.x + doorWidthPx;
+    const doorBottom = doorState.y + doorHeightPx;
+    
+    return doorState.x < tileRight && doorRight > tileX &&
+           doorState.y < tileBottom && doorBottom > tileY;
+  }
+
+  // Generate SVG content for a door (for printing)
+  function generateDoorSVGForPrint(doorState, doorSide, clipId) {
+    const { x, y, numBlackSectors, blackSectorRad, spaceSectorRad, vpOffsetYCm, sectorRadiusPx } = doorState;
+    
+    let svgContent = `<g class="door-group">`;
+    
+    // Add door frame
+    svgContent += `<rect x="${x}" y="${y}" width="${doorWidthPx}" height="${doorHeightPx}" 
+                    fill="none" stroke="black" stroke-width="${borderWidthPx}" />`;
+    
+    // Add sectors group with clipping
+    svgContent += `<g clip-path="url(#${clipId})">`;
+    
+    // Calculate VP position
+    const vpOffsetYPx = vpOffsetYCm * scale;
+    const vpCenterX = x + doorWidthPx / 2;
+    const innerBottomY = y + doorHeightPx - borderWidthPx / 2;
+    const vpCenterY = innerBottomY + vpOffsetYPx;
+    
+    // Generate sectors
+    const numSpaces = Math.max(0, numBlackSectors - 1);
+    const totalAngleRad = (numBlackSectors * blackSectorRad) + (numSpaces * spaceSectorRad);
+    const startAngle = (-Math.PI / 2) - (totalAngleRad / 2);
+    const stepRad = blackSectorRad + spaceSectorRad;
+    let currentAngle = startAngle;
+    
+    const sectorWidths = [];
+    
+    for (let i = 0; i < numBlackSectors; i++) {
+      const endAngle = currentAngle + blackSectorRad;
+      if (blackSectorRad > 0) {
+        const startX = vpCenterX + sectorRadiusPx * Math.cos(currentAngle);
+        const startY = vpCenterY + sectorRadiusPx * Math.sin(currentAngle);
+        const endX = vpCenterX + sectorRadiusPx * Math.cos(endAngle);
+        const endY = vpCenterY + sectorRadiusPx * Math.sin(endAngle);
+        
+        // Calculate sector width for measurements
+        let startIntersectionX = null;
+        let endIntersectionX = null;
+        
+        if (Math.sin(currentAngle) !== 0) {
+          startIntersectionX = vpCenterX + (innerBottomY - vpCenterY) * Math.cos(currentAngle) / Math.sin(currentAngle);
+        }
+        
+        if (Math.sin(endAngle) !== 0) {
+          endIntersectionX = vpCenterX + (innerBottomY - vpCenterY) * Math.cos(endAngle) / Math.sin(endAngle);
+        }
+        
+        if (startIntersectionX !== null && endIntersectionX !== null && 
+            startIntersectionX >= x && startIntersectionX <= x + doorWidthPx &&
+            endIntersectionX >= x && endIntersectionX <= x + doorWidthPx) {
+          
+          const sectorWidthPx = Math.abs(endIntersectionX - startIntersectionX);
+          const sectorWidthCm = sectorWidthPx / scale;
+          const centerX = (startIntersectionX + endIntersectionX) / 2;
+          
+          sectorWidths.push({
+            widthCm: sectorWidthCm,
+            centerX: centerX,
+            startX: startIntersectionX,
+            endX: endIntersectionX,
+            sectorIndex: i
+          });
+        }
+        
+        const largeArcFlag = blackSectorRad > Math.PI ? 1 : 0;
+        const sweepFlag = 1;
+        
+        const d = [
+          `M ${vpCenterX},${vpCenterY}`,
+          `L ${startX},${startY}`,
+          `A ${sectorRadiusPx},${sectorRadiusPx} 0 ${largeArcFlag} ${sweepFlag} ${endX},${endY}`,
+          'Z'
+        ].join(' ');
+        
+        svgContent += `<path d="${d}" fill="black" />`;
+      }
+      currentAngle += stepRad;
+    }
+    
+    svgContent += '</g>'; // Close sectors group
+    
+    // Add measurements
+    const verticalOffsetStep = 16;
+    
+    for (let i = 0; i < sectorWidths.length; i++) {
+      const sector = sectorWidths[i];
+      const widthCm = sector.widthCm.toFixed(3);
+      
+      const bracketStartY = innerBottomY + 3;
+      const bracketHeight = 6;
+      const bracketEndY = bracketStartY + bracketHeight;
+      
+      const isOdd = i % 2 === 1;
+      const baseTextY = bracketEndY + 12;
+      const textY = baseTextY + (isOdd ? verticalOffsetStep : 0);
+      
+      // Add measurement text
+      svgContent += `<text x="${sector.centerX}" y="${textY}" text-anchor="middle" 
+                      font-family="Arial, sans-serif" font-size="12" fill="red" font-weight="bold">
+                      ${widthCm}cm</text>`;
+      
+      // Add bracket
+      const bracketPath = [
+        `M ${sector.startX},${innerBottomY}`,
+        `L ${sector.startX},${bracketEndY}`,
+        `L ${sector.endX},${bracketEndY}`,
+        `L ${sector.endX},${innerBottomY}`
+      ].join(' ');
+      
+      svgContent += `<path d="${bracketPath}" stroke="red" stroke-width="2" fill="none" />`;
+      
+      // Add connecting line for odd indices
+      if (isOdd) {
+        svgContent += `<line x1="${sector.centerX}" y1="${bracketEndY}" 
+                        x2="${sector.centerX}" y2="${textY - 2}" 
+                        stroke="red" stroke-width="1" stroke-dasharray="2,2" />`;
+      }
+    }
+    
+    // Add vanishing point
+    svgContent += `<circle cx="${vpCenterX}" cy="${vpCenterY}" r="1" fill="blue" />`;
+    
+    svgContent += '</g>'; // Close door group
+    
+    return svgContent;
   }
 
 
@@ -971,6 +1333,11 @@
   // A4 tiles visibility
   a4TilesVisibility.addEventListener('change', function() {
     redrawSVG();
+  });
+
+  // Print pages button
+  printPagesBtn.addEventListener('click', function() {
+    printA4Pages();
   });
 
   // Settings Toggle
