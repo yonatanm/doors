@@ -346,6 +346,16 @@
   const a4HeightCm = 21.0; // A4 height in cm (landscape)
   const a4WidthPx = a4WidthCm * scale; // A4 width in pixels
   const a4HeightPx = a4HeightCm * scale; // A4 height in pixels
+  
+  // --- Printer Margins & Overlap ---
+  const printerMarginCm = 1.0; // 1cm margin on all sides
+  const overlapCm = 1.2; // 1.2cm overlap to ensure no content is lost
+  const printableWidthCm = a4WidthCm - (printerMarginCm * 2); // 27.7cm
+  const printableHeightCm = a4HeightCm - (printerMarginCm * 2); // 19cm
+  const tileStepWidthCm = printableWidthCm - overlapCm; // 26.5cm step between tiles
+  const tileStepHeightCm = printableHeightCm - overlapCm; // 17.8cm step between tiles
+  const tileStepWidthPx = tileStepWidthCm * scale;
+  const tileStepHeightPx = tileStepHeightCm * scale;
 
   // State variables - Global
   let innerWidthCm = 49;
@@ -691,17 +701,17 @@
     const svgWidth = svg.width.baseVal.value;
     const svgHeight = svg.height.baseVal.value;
 
-    // Calculate how many A4 pages fit horizontally and vertically
-    const tilesX = Math.ceil(svgWidth / a4WidthPx);
-    const tilesY = Math.ceil(svgHeight / a4HeightPx);
+    // Calculate how many A4 pages fit with overlap compensation
+    const tilesX = Math.ceil(svgWidth / tileStepWidthPx);
+    const tilesY = Math.ceil(svgHeight / tileStepHeightPx);
 
-    // Create A4 rectangles
+    // Create A4 rectangles with overlap
     for (let row = 0; row < tilesY; row++) {
         for (let col = 0; col < tilesX; col++) {
-            const x = col * a4WidthPx;
-            const y = row * a4HeightPx;
+            const x = col * tileStepWidthPx;
+            const y = row * tileStepHeightPx;
             
-            // Create A4 rectangle
+            // Create A4 rectangle (full size, overlapping)
             const rect = document.createElementNS(svgNS, 'rect');
             rect.setAttribute('x', x);
             rect.setAttribute('y', y);
@@ -710,10 +720,24 @@
             rect.setAttribute('fill', 'none');
             rect.setAttribute('stroke', 'green');
             rect.setAttribute('stroke-width', '2');
-            rect.setAttribute('stroke-dasharray', '5,5'); // Dashed line for better visibility
+            rect.setAttribute('stroke-dasharray', '5,5');
             rect.setAttribute('opacity', '0.7');
             
             a4TilesGroup.appendChild(rect);
+            
+            // Create printable area rectangle (showing the actual printable area)
+            const printableRect = document.createElementNS(svgNS, 'rect');
+            printableRect.setAttribute('x', x + (printerMarginCm * scale));
+            printableRect.setAttribute('y', y + (printerMarginCm * scale));
+            printableRect.setAttribute('width', printableWidthCm * scale);
+            printableRect.setAttribute('height', printableHeightCm * scale);
+            printableRect.setAttribute('fill', 'none');
+            printableRect.setAttribute('stroke', 'orange');
+            printableRect.setAttribute('stroke-width', '1');
+            printableRect.setAttribute('stroke-dasharray', '2,2');
+            printableRect.setAttribute('opacity', '0.5');
+            
+            a4TilesGroup.appendChild(printableRect);
             
             // Add A4 label
             const text = document.createElementNS(svgNS, 'text');
@@ -729,7 +753,117 @@
             a4TilesGroup.appendChild(text);
         }
     }
-     }
+    
+    // Draw rulers
+    drawRulers();
+  }
+
+  // --- Draw Rulers ---
+  function drawRulers() {
+    // Get current SVG dimensions
+    const svgWidth = svg.width.baseVal.value;
+    const svgHeight = svg.height.baseVal.value;
+
+    // Horizontal ruler (top)
+    const rulerThickness = 20; // pixels
+    const rulerGroup = document.createElementNS(svgNS, 'g');
+    rulerGroup.setAttribute('id', 'rulers-group');
+    
+    // Horizontal ruler background
+    const hRulerBg = document.createElementNS(svgNS, 'rect');
+    hRulerBg.setAttribute('x', 0);
+    hRulerBg.setAttribute('y', 0);
+    hRulerBg.setAttribute('width', svgWidth);
+    hRulerBg.setAttribute('height', rulerThickness);
+    hRulerBg.setAttribute('fill', 'rgba(255,255,255,0.9)');
+    hRulerBg.setAttribute('stroke', 'black');
+    hRulerBg.setAttribute('stroke-width', '1');
+    rulerGroup.appendChild(hRulerBg);
+
+    // Horizontal ruler marks and numbers
+    const totalCmH = Math.ceil(svgWidth / scale);
+    for (let cm = 0; cm <= totalCmH; cm++) {
+      const x = cm * scale;
+      if (x > svgWidth) break;
+      
+      // Major tick every cm
+      const tick = document.createElementNS(svgNS, 'line');
+      tick.setAttribute('x1', x);
+      tick.setAttribute('y1', 0);
+      tick.setAttribute('x2', x);
+      tick.setAttribute('y2', rulerThickness);
+      tick.setAttribute('stroke', 'black');
+      tick.setAttribute('stroke-width', cm % 5 === 0 ? '2' : '1');
+      rulerGroup.appendChild(tick);
+      
+      // Numbers every 5cm
+      if (cm % 5 === 0) {
+        const label = document.createElementNS(svgNS, 'text');
+        label.setAttribute('x', x + 2);
+        label.setAttribute('y', rulerThickness - 3);
+        label.setAttribute('font-family', 'Arial, sans-serif');
+        label.setAttribute('font-size', '10');
+        label.setAttribute('fill', 'black');
+        label.textContent = `${cm}cm`;
+        rulerGroup.appendChild(label);
+      }
+    }
+
+    // Vertical ruler (left)
+    const vRulerBg = document.createElementNS(svgNS, 'rect');
+    vRulerBg.setAttribute('x', 0);
+    vRulerBg.setAttribute('y', rulerThickness);
+    vRulerBg.setAttribute('width', rulerThickness);
+    vRulerBg.setAttribute('height', svgHeight - rulerThickness);
+    vRulerBg.setAttribute('fill', 'rgba(255,255,255,0.9)');
+    vRulerBg.setAttribute('stroke', 'black');
+    vRulerBg.setAttribute('stroke-width', '1');
+    rulerGroup.appendChild(vRulerBg);
+
+    // Vertical ruler marks and numbers
+    const totalCmV = Math.ceil(svgHeight / scale);
+    for (let cm = 0; cm <= totalCmV; cm++) {
+      const y = (cm * scale) + rulerThickness;
+      if (y > svgHeight) break;
+      
+      // Major tick every cm
+      const tick = document.createElementNS(svgNS, 'line');
+      tick.setAttribute('x1', 0);
+      tick.setAttribute('y1', y);
+      tick.setAttribute('x2', rulerThickness);
+      tick.setAttribute('y2', y);
+      tick.setAttribute('stroke', 'black');
+      tick.setAttribute('stroke-width', cm % 5 === 0 ? '2' : '1');
+      rulerGroup.appendChild(tick);
+      
+      // Numbers every 5cm (rotated)
+      if (cm % 5 === 0 && cm > 0) {
+        const label = document.createElementNS(svgNS, 'text');
+        label.setAttribute('x', rulerThickness - 2);
+        label.setAttribute('y', y - 2);
+        label.setAttribute('font-family', 'Arial, sans-serif');
+        label.setAttribute('font-size', '10');
+        label.setAttribute('fill', 'black');
+        label.setAttribute('text-anchor', 'end');
+        label.textContent = `${cm}cm`;
+        rulerGroup.appendChild(label);
+      }
+    }
+
+    // Add corner square
+    const corner = document.createElementNS(svgNS, 'rect');
+    corner.setAttribute('x', 0);
+    corner.setAttribute('y', 0);
+    corner.setAttribute('width', rulerThickness);
+    corner.setAttribute('height', rulerThickness);
+    corner.setAttribute('fill', 'rgba(200,200,200,0.9)');
+    corner.setAttribute('stroke', 'black');
+    corner.setAttribute('stroke-width', '1');
+    rulerGroup.appendChild(corner);
+
+    // Insert rulers before other content but after A4 tiles
+    a4TilesGroup.appendChild(rulerGroup);
+  }
 
   // --- Print A4 Pages ---
   function printA4Pages() {
@@ -737,17 +871,17 @@
     const svgWidth = svg.width.baseVal.value;
     const svgHeight = svg.height.baseVal.value;
 
-    // Calculate how many A4 pages fit
-    const tilesX = Math.ceil(svgWidth / a4WidthPx);
-    const tilesY = Math.ceil(svgHeight / a4HeightPx);
+    // Calculate how many A4 pages fit with overlap
+    const tilesX = Math.ceil(svgWidth / tileStepWidthPx);
+    const tilesY = Math.ceil(svgHeight / tileStepHeightPx);
 
     let pagesWithContent = [];
 
-    // Check each A4 tile for content
+    // Check each A4 tile for content (using overlapping positions)
     for (let row = 0; row < tilesY; row++) {
       for (let col = 0; col < tilesX; col++) {
-        const tileX = col * a4WidthPx;
-        const tileY = row * a4HeightPx;
+        const tileX = col * tileStepWidthPx;
+        const tileY = row * tileStepHeightPx;
         
         // Check if this tile has any door content
         if (hasContentInTile(tileX, tileY, a4WidthPx, a4HeightPx)) {
@@ -889,10 +1023,17 @@
           </style>
         </head>
       <body>
-        <h1 style="text-align: center; margin: 20px 0;">Door A4 Pages for Printing</h1>
-        <p style="text-align: center; margin-bottom: 30px;">
-          Found ${pages.length} page(s) with content. Use browser's print button to print.
-        </p>
+        <h1 style="text-align: center; margin: 20px 0;">Door A4 Pages for Printing (Landscape)</h1>
+        <div style="text-align: center; margin-bottom: 30px; background: #f0f0f0; padding: 15px; border-radius: 5px;">
+          <p><strong>Found ${pages.length} page(s) with content</strong></p>
+          <p style="margin: 10px 0; font-size: 14px;">
+            📐 <strong>Printer Setup:</strong> 1cm margins compensated with 1.2cm overlap between pages<br/>
+            📏 <strong>Rulers:</strong> Use the cm rulers on each page for precise alignment<br/>
+            ✂️ <strong>Assembly:</strong> Overlap pages by 1.2cm and align using ruler marks<br/>
+            🔴 <strong>Red dashed line:</strong> Shows actual printable area (considering 1cm printer margins)
+          </p>
+          <p style="margin-top: 15px;"><em>Use browser's print button to print all pages</em></p>
+        </div>
         ${allPagesHTML}
       </body>
       </html>
@@ -912,6 +1053,7 @@
       <style>
         .door-group { cursor: default; }
         text { font-family: Arial, sans-serif; }
+        .ruler-text { font-family: Arial, sans-serif; font-size: 8px; }
       </style>
     `;
 
@@ -927,6 +1069,16 @@
       </clipPath>
     </defs>`;
 
+    // Add rulers for this tile
+    svgContent += generateRulersForPrint(tileX, tileY);
+
+    // Add printable area guide
+    const printableX = tileX + (printerMarginCm * scale);
+    const printableY = tileY + (printerMarginCm * scale);
+    svgContent += `<rect x="${printableX}" y="${printableY}" 
+                    width="${printableWidthCm * scale}" height="${printableHeightCm * scale}" 
+                    fill="none" stroke="red" stroke-width="1" stroke-dasharray="3,3" opacity="0.3" />`;
+
     // Check if left door is in this tile and add it
     if (leftDoorState.visible && doorIntersectsTile(leftDoorState, tileX, tileY)) {
       svgContent += generateDoorSVGForPrint(leftDoorState, 'left', `left-door-clip-print-${tileX}-${tileY}`);
@@ -939,6 +1091,54 @@
 
     svgContent += '</svg>';
     return svgContent;
+  }
+
+  // Generate rulers for print
+  function generateRulersForPrint(tileX, tileY) {
+    let rulerContent = '';
+    const rulerThickness = 15;
+    
+    // Horizontal ruler (top edge of tile)
+    rulerContent += `<rect x="${tileX}" y="${tileY}" width="${a4WidthPx}" height="${rulerThickness}" 
+                      fill="rgba(255,255,255,0.9)" stroke="black" stroke-width="0.5" />`;
+    
+    // Horizontal ruler marks
+    const startCmH = Math.floor(tileX / scale);
+    const endCmH = Math.ceil((tileX + a4WidthPx) / scale);
+    for (let cm = startCmH; cm <= endCmH; cm++) {
+      const x = cm * scale;
+      if (x >= tileX && x <= tileX + a4WidthPx) {
+        rulerContent += `<line x1="${x}" y1="${tileY}" x2="${x}" y2="${tileY + rulerThickness}" 
+                          stroke="black" stroke-width="${cm % 5 === 0 ? '1' : '0.5'}" />`;
+        if (cm % 5 === 0) {
+          rulerContent += `<text x="${x + 2}" y="${tileY + rulerThickness - 2}" class="ruler-text" fill="black">${cm}cm</text>`;
+        }
+      }
+    }
+    
+    // Vertical ruler (left edge of tile)
+    rulerContent += `<rect x="${tileX}" y="${tileY + rulerThickness}" width="${rulerThickness}" height="${a4HeightPx - rulerThickness}" 
+                      fill="rgba(255,255,255,0.9)" stroke="black" stroke-width="0.5" />`;
+    
+    // Vertical ruler marks
+    const startCmV = Math.floor(tileY / scale);
+    const endCmV = Math.ceil((tileY + a4HeightPx) / scale);
+    for (let cm = startCmV; cm <= endCmV; cm++) {
+      const y = cm * scale;
+      if (y >= tileY + rulerThickness && y <= tileY + a4HeightPx) {
+        rulerContent += `<line x1="${tileX}" y1="${y}" x2="${tileX + rulerThickness}" y2="${y}" 
+                          stroke="black" stroke-width="${cm % 5 === 0 ? '1' : '0.5'}" />`;
+        if (cm % 5 === 0 && cm > 0) {
+          rulerContent += `<text x="${tileX + rulerThickness - 2}" y="${y - 1}" class="ruler-text" fill="black" text-anchor="end">${cm}cm</text>`;
+        }
+      }
+    }
+    
+    // Corner square
+    rulerContent += `<rect x="${tileX}" y="${tileY}" width="${rulerThickness}" height="${rulerThickness}" 
+                      fill="rgba(200,200,200,0.9)" stroke="black" stroke-width="0.5" />`;
+    
+    return rulerContent;
   }
 
   // Check if door intersects with the tile
@@ -1087,7 +1287,7 @@
     if (a4TilesVisibility.checked) {
       drawA4Tiles();
     } else {
-      // Clear A4 tiles if disabled
+      // Clear A4 tiles and rulers if disabled
       while (a4TilesGroup.firstChild) {
         a4TilesGroup.removeChild(a4TilesGroup.firstChild);
       }
