@@ -764,16 +764,19 @@
     const svgWidth = svg.width.baseVal.value;
     const svgHeight = svg.height.baseVal.value;
 
-    // Horizontal ruler (top)
+    // Position rulers inside the first A4 tile's printable area
     const rulerThickness = 20; // pixels
+    const rulerOffsetX = printerMarginCm * scale; // 1cm inside from left edge
+    const rulerOffsetY = printerMarginCm * scale; // 1cm inside from top edge
+    
     const rulerGroup = document.createElementNS(svgNS, 'g');
     rulerGroup.setAttribute('id', 'rulers-group');
     
-    // Horizontal ruler background
+    // Horizontal ruler background (positioned inside printable area)
     const hRulerBg = document.createElementNS(svgNS, 'rect');
-    hRulerBg.setAttribute('x', 0);
-    hRulerBg.setAttribute('y', 0);
-    hRulerBg.setAttribute('width', svgWidth);
+    hRulerBg.setAttribute('x', rulerOffsetX);
+    hRulerBg.setAttribute('y', rulerOffsetY);
+    hRulerBg.setAttribute('width', svgWidth - rulerOffsetX);
     hRulerBg.setAttribute('height', rulerThickness);
     hRulerBg.setAttribute('fill', 'rgba(255,255,255,0.9)');
     hRulerBg.setAttribute('stroke', 'black');
@@ -784,14 +787,14 @@
     const totalCmH = Math.ceil(svgWidth / scale);
     for (let cm = 0; cm <= totalCmH; cm++) {
       const x = cm * scale;
-      if (x > svgWidth) break;
+      if (x > svgWidth || x < rulerOffsetX) continue;
       
       // Major tick every cm
       const tick = document.createElementNS(svgNS, 'line');
       tick.setAttribute('x1', x);
-      tick.setAttribute('y1', 0);
+      tick.setAttribute('y1', rulerOffsetY);
       tick.setAttribute('x2', x);
-      tick.setAttribute('y2', rulerThickness);
+      tick.setAttribute('y2', rulerOffsetY + rulerThickness);
       tick.setAttribute('stroke', 'black');
       tick.setAttribute('stroke-width', cm % 5 === 0 ? '2' : '1');
       rulerGroup.appendChild(tick);
@@ -800,7 +803,7 @@
       if (cm % 5 === 0) {
         const label = document.createElementNS(svgNS, 'text');
         label.setAttribute('x', x + 2);
-        label.setAttribute('y', rulerThickness - 3);
+        label.setAttribute('y', rulerOffsetY + rulerThickness - 3);
         label.setAttribute('font-family', 'Arial, sans-serif');
         label.setAttribute('font-size', '10');
         label.setAttribute('fill', 'black');
@@ -809,12 +812,12 @@
       }
     }
 
-    // Vertical ruler (left)
+    // Vertical ruler (positioned inside printable area)
     const vRulerBg = document.createElementNS(svgNS, 'rect');
-    vRulerBg.setAttribute('x', 0);
-    vRulerBg.setAttribute('y', rulerThickness);
+    vRulerBg.setAttribute('x', rulerOffsetX);
+    vRulerBg.setAttribute('y', rulerOffsetY + rulerThickness);
     vRulerBg.setAttribute('width', rulerThickness);
-    vRulerBg.setAttribute('height', svgHeight - rulerThickness);
+    vRulerBg.setAttribute('height', svgHeight - rulerOffsetY - rulerThickness);
     vRulerBg.setAttribute('fill', 'rgba(255,255,255,0.9)');
     vRulerBg.setAttribute('stroke', 'black');
     vRulerBg.setAttribute('stroke-width', '1');
@@ -823,23 +826,23 @@
     // Vertical ruler marks and numbers
     const totalCmV = Math.ceil(svgHeight / scale);
     for (let cm = 0; cm <= totalCmV; cm++) {
-      const y = (cm * scale) + rulerThickness;
-      if (y > svgHeight) break;
+      const y = (cm * scale);
+      if (y > svgHeight || y < rulerOffsetY + rulerThickness) continue;
       
       // Major tick every cm
       const tick = document.createElementNS(svgNS, 'line');
-      tick.setAttribute('x1', 0);
+      tick.setAttribute('x1', rulerOffsetX);
       tick.setAttribute('y1', y);
-      tick.setAttribute('x2', rulerThickness);
+      tick.setAttribute('x2', rulerOffsetX + rulerThickness);
       tick.setAttribute('y2', y);
       tick.setAttribute('stroke', 'black');
       tick.setAttribute('stroke-width', cm % 5 === 0 ? '2' : '1');
       rulerGroup.appendChild(tick);
       
-      // Numbers every 5cm (rotated)
+      // Numbers every 5cm
       if (cm % 5 === 0 && cm > 0) {
         const label = document.createElementNS(svgNS, 'text');
-        label.setAttribute('x', rulerThickness - 2);
+        label.setAttribute('x', rulerOffsetX + rulerThickness - 2);
         label.setAttribute('y', y - 2);
         label.setAttribute('font-family', 'Arial, sans-serif');
         label.setAttribute('font-size', '10');
@@ -850,10 +853,10 @@
       }
     }
 
-    // Add corner square
+    // Add corner square (inside printable area)
     const corner = document.createElementNS(svgNS, 'rect');
-    corner.setAttribute('x', 0);
-    corner.setAttribute('y', 0);
+    corner.setAttribute('x', rulerOffsetX);
+    corner.setAttribute('y', rulerOffsetY);
     corner.setAttribute('width', rulerThickness);
     corner.setAttribute('height', rulerThickness);
     corner.setAttribute('fill', 'rgba(200,200,200,0.9)');
@@ -1093,13 +1096,19 @@
     return svgContent;
   }
 
-  // Generate rulers for print
+  // Generate rulers for print (positioned inside printable area)
   function generateRulersForPrint(tileX, tileY) {
     let rulerContent = '';
     const rulerThickness = 15;
     
-    // Horizontal ruler (top edge of tile)
-    rulerContent += `<rect x="${tileX}" y="${tileY}" width="${a4WidthPx}" height="${rulerThickness}" 
+    // Calculate printable area boundaries
+    const printableX = tileX + (printerMarginCm * scale);
+    const printableY = tileY + (printerMarginCm * scale);
+    const printableWidth = printableWidthCm * scale;
+    const printableHeight = printableHeightCm * scale;
+    
+    // Horizontal ruler (top edge of printable area)
+    rulerContent += `<rect x="${printableX}" y="${printableY}" width="${printableWidth}" height="${rulerThickness}" 
                       fill="rgba(255,255,255,0.9)" stroke="black" stroke-width="0.5" />`;
     
     // Horizontal ruler marks
@@ -1107,17 +1116,17 @@
     const endCmH = Math.ceil((tileX + a4WidthPx) / scale);
     for (let cm = startCmH; cm <= endCmH; cm++) {
       const x = cm * scale;
-      if (x >= tileX && x <= tileX + a4WidthPx) {
-        rulerContent += `<line x1="${x}" y1="${tileY}" x2="${x}" y2="${tileY + rulerThickness}" 
+      if (x >= printableX && x <= printableX + printableWidth) {
+        rulerContent += `<line x1="${x}" y1="${printableY}" x2="${x}" y2="${printableY + rulerThickness}" 
                           stroke="black" stroke-width="${cm % 5 === 0 ? '1' : '0.5'}" />`;
         if (cm % 5 === 0) {
-          rulerContent += `<text x="${x + 2}" y="${tileY + rulerThickness - 2}" class="ruler-text" fill="black">${cm}cm</text>`;
+          rulerContent += `<text x="${x + 2}" y="${printableY + rulerThickness - 2}" class="ruler-text" fill="black">${cm}cm</text>`;
         }
       }
     }
     
-    // Vertical ruler (left edge of tile)
-    rulerContent += `<rect x="${tileX}" y="${tileY + rulerThickness}" width="${rulerThickness}" height="${a4HeightPx - rulerThickness}" 
+    // Vertical ruler (left edge of printable area)
+    rulerContent += `<rect x="${printableX}" y="${printableY + rulerThickness}" width="${rulerThickness}" height="${printableHeight - rulerThickness}" 
                       fill="rgba(255,255,255,0.9)" stroke="black" stroke-width="0.5" />`;
     
     // Vertical ruler marks
@@ -1125,17 +1134,17 @@
     const endCmV = Math.ceil((tileY + a4HeightPx) / scale);
     for (let cm = startCmV; cm <= endCmV; cm++) {
       const y = cm * scale;
-      if (y >= tileY + rulerThickness && y <= tileY + a4HeightPx) {
-        rulerContent += `<line x1="${tileX}" y1="${y}" x2="${tileX + rulerThickness}" y2="${y}" 
+      if (y >= printableY + rulerThickness && y <= printableY + printableHeight) {
+        rulerContent += `<line x1="${printableX}" y1="${y}" x2="${printableX + rulerThickness}" y2="${y}" 
                           stroke="black" stroke-width="${cm % 5 === 0 ? '1' : '0.5'}" />`;
         if (cm % 5 === 0 && cm > 0) {
-          rulerContent += `<text x="${tileX + rulerThickness - 2}" y="${y - 1}" class="ruler-text" fill="black" text-anchor="end">${cm}cm</text>`;
+          rulerContent += `<text x="${printableX + rulerThickness - 2}" y="${y - 1}" class="ruler-text" fill="black" text-anchor="end">${cm}cm</text>`;
         }
       }
     }
     
-    // Corner square
-    rulerContent += `<rect x="${tileX}" y="${tileY}" width="${rulerThickness}" height="${rulerThickness}" 
+    // Corner square (inside printable area)
+    rulerContent += `<rect x="${printableX}" y="${printableY}" width="${rulerThickness}" height="${rulerThickness}" 
                       fill="rgba(200,200,200,0.9)" stroke="black" stroke-width="0.5" />`;
     
     return rulerContent;
@@ -1158,9 +1167,17 @@
     
     let svgContent = `<g class="door-group">`;
     
-    // Add door frame
+    // Add door frame - outer and inner borders (thinner borders for print visibility)
+    // Outer border
     svgContent += `<rect x="${x}" y="${y}" width="${doorWidthPx}" height="${doorHeightPx}" 
-                    fill="none" stroke="black" stroke-width="${borderWidthPx}" />`;
+                    fill="none" stroke="black" stroke-width="2" />`;
+    // Inner border
+    const innerX = x + borderWidthPx;
+    const innerY = y + borderWidthPx;
+    const innerWidth = doorWidthPx - (borderWidthPx * 2);
+    const innerHeight = doorHeightPx - (borderWidthPx * 2);
+    svgContent += `<rect x="${innerX}" y="${innerY}" width="${innerWidth}" height="${innerHeight}" 
+                    fill="none" stroke="black" stroke-width="2" />`;
     
     // Add sectors group with clipping
     svgContent += `<g clip-path="url(#${clipId})">`;
@@ -1227,7 +1244,7 @@
           'Z'
         ].join(' ');
         
-        svgContent += `<path d="${d}" fill="black" />`;
+        svgContent += `<path d="${d}" fill="none" stroke="black" stroke-width="2" />`;
       }
       currentAngle += stepRad;
     }
