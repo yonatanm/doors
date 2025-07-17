@@ -403,7 +403,8 @@
 
     // --- Define SVG ViewBox and On-Screen Dimensions ---
     const viewBoxWidthPx = (doorWidthPx * 2) + extraHorizontalSpacePx; // Two doors side-by-side + extra space
-    const viewBoxHeightPx = doorHeightPx + (extraVerticalSpaceCm * scale);    // Height of a single door + extra vertical space
+    const measurementSpacePx = 50; // Extra space for measurements below doors
+    const viewBoxHeightPx = doorHeightPx + (extraVerticalSpaceCm * scale) + measurementSpacePx;    // Height of a single door + extra vertical space + measurement space
 
     svg.setAttribute('viewBox', `0 0 ${viewBoxWidthPx} ${viewBoxHeightPx}`);
 
@@ -489,12 +490,14 @@
         sectorsGroupElement.removeChild(sectorsGroupElement.firstChild);
     }
 
-    // 5. Draw New Sectors
+    // 5. Draw New Sectors and Calculate Bottom Intersections
     const numSpaces = Math.max(0, numBlackSectors - 1);
     const totalAngleRad = (numBlackSectors * blackSectorRad) + (numSpaces * spaceSectorRad);
     const startAngle = (-Math.PI / 2) - (totalAngleRad / 2); // Center the fan pattern vertically upwards
     const stepRad = blackSectorRad + spaceSectorRad;
     let currentAngle = startAngle;
+    
+    const sectorWidths = []; // Store sector width measurements
 
     for (let i = 0; i < numBlackSectors; i++) {
         const endAngle = currentAngle + blackSectorRad;
@@ -504,6 +507,41 @@
             const startY = vpCenterY + sectorRadiusPx * Math.sin(currentAngle);
             const endX = vpCenterX + sectorRadiusPx * Math.cos(endAngle);
             const endY = vpCenterY + sectorRadiusPx * Math.sin(endAngle);
+
+            // Calculate intersection with inner bottom edge (where sectors are actually visible)
+            const innerBottomY = doorHeightPx - borderWidthPx / 2; // Bottom of the clipped inner door area
+            let startIntersectionX = null;
+            let endIntersectionX = null;
+            
+            // For start ray: calculate intersection with inner bottom edge
+            if (Math.sin(currentAngle) !== 0) {
+                startIntersectionX = vpCenterX + (innerBottomY - vpCenterY) * Math.cos(currentAngle) / Math.sin(currentAngle);
+            }
+            
+            // For end ray: calculate intersection with inner bottom edge
+            if (Math.sin(endAngle) !== 0) {
+                endIntersectionX = vpCenterX + (innerBottomY - vpCenterY) * Math.cos(endAngle) / Math.sin(endAngle);
+            }
+
+            // Calculate sector width if both intersections are valid and within door bounds
+            if (startIntersectionX !== null && endIntersectionX !== null && 
+                startIntersectionX >= 0 && startIntersectionX <= doorWidthPx &&
+                endIntersectionX >= 0 && endIntersectionX <= doorWidthPx) {
+                
+                const sectorWidthPx = Math.abs(endIntersectionX - startIntersectionX);
+                const sectorWidthCm = sectorWidthPx / scale;
+                const centerX = (startIntersectionX + endIntersectionX) / 2;
+                
+                sectorWidths.push({
+                    widthCm: sectorWidthCm,
+                    centerX: centerX,
+                    startX: startIntersectionX,
+                    endX: endIntersectionX,
+                    sectorIndex: i
+                });
+                
+
+            }
 
             // large-arc-flag is 1 if the angle is > 180 degrees (not applicable here)
             const largeArcFlag = blackSectorRad > Math.PI ? 1 : 0;
@@ -527,7 +565,69 @@
         currentAngle += stepRad;
     }
 
-    // 6. Update VP Circle (relative to group)
+    // 6. Add measurements for sector widths
+    console.log(`Found ${sectorWidths.length} sectors with width measurements for door`); // Debug
+    
+    const verticalOffsetStep = 16; // Pixels to offset vertically for odd indices
+    
+    for (let i = 0; i < sectorWidths.length; i++) {
+        const sector = sectorWidths[i];
+        const widthCm = sector.widthCm.toFixed(2);
+        
+        console.log(`Sector ${sector.sectorIndex}: width=${widthCm}cm, center=${sector.centerX}`); // Debug
+        
+        // Create bracket to show the width span - positioned below inner door area
+        const innerBottomY = doorHeightPx - borderWidthPx / 2; // Bottom of the clipped inner door area
+        const bracketStartY = innerBottomY + 3; // Start bracket 3px below inner door area
+        const bracketHeight = 6;
+        const bracketEndY = bracketStartY + bracketHeight;
+        
+        // Alternate vertical position: even indices at baseline, odd indices offset
+        const isOdd = i % 2 === 1;
+        const baseTextY = bracketEndY + 12; // Position text below bracket with some space
+        const textY = baseTextY + (isOdd ? verticalOffsetStep : 0);
+        
+        // Create measurement text at center of sector - Add to main group element
+        const text = document.createElementNS(svgNS, 'text');
+        text.setAttribute('x', sector.centerX);
+        text.setAttribute('y', textY);
+        text.setAttribute('text-anchor', 'middle');
+        text.setAttribute('font-family', 'Arial, sans-serif');
+        text.setAttribute('font-size', '12');
+        text.setAttribute('fill', 'red');
+        text.setAttribute('font-weight', 'bold');
+        text.textContent = `${widthCm}cm`;
+        groupElement.appendChild(text);
+        
+        // Create the bracket path
+        const bracket = document.createElementNS(svgNS, 'path');
+        const d = [
+            `M ${sector.startX},${innerBottomY}`, // Start at sector edge on inner bottom
+            `L ${sector.startX},${bracketEndY}`, // Down to bracket level
+            `L ${sector.endX},${bracketEndY}`, // Across to other sector edge
+            `L ${sector.endX},${innerBottomY}` // Up to sector edge on inner bottom
+        ].join(' ');
+        bracket.setAttribute('d', d);
+        bracket.setAttribute('stroke', 'red');
+        bracket.setAttribute('stroke-width', '2');
+        bracket.setAttribute('fill', 'none');
+        groupElement.appendChild(bracket);
+        
+        // Add connecting line from bracket to text if offset (for odd indices)
+        if (isOdd) {
+            const connector = document.createElementNS(svgNS, 'line');
+            connector.setAttribute('x1', sector.centerX);
+            connector.setAttribute('y1', bracketEndY);
+            connector.setAttribute('x2', sector.centerX);
+            connector.setAttribute('y2', textY - 2);
+            connector.setAttribute('stroke', 'red');
+            connector.setAttribute('stroke-width', '1');
+            connector.setAttribute('stroke-dasharray', '2,2');
+            groupElement.appendChild(connector);
+        }
+    }
+
+    // 7. Update VP Circle (relative to group)
     vpElement.setAttribute('cx', vpCenterX);
     vpElement.setAttribute('cy', vpCenterY);
     vpElement.setAttribute('r', vpRadiusPx); // Radius is constant
