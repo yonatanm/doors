@@ -205,13 +205,13 @@
         <div>
             <label for="leftNumSectorsInput">Sectors:</label>
             <div class="input-row">
-                <input type="number" id="leftNumSectorsInput" value="18" min="1" max="50" step="1">
+                <input type="number" id="leftNumSectorsInput" value="17" min="1" max="50" step="1">
             </div>
         </div>
         <div>
             <label for="leftBlackAngleInput">Sector Angle (deg):</label>
             <div class="input-row">
-                <input type="number" id="leftBlackAngleInput" value="4" min="0.1" max="45" step="0.1">
+                <input type="number" id="leftBlackAngleInput" value="5" min="0.1" max="45" step="0.1">
             </div>
         </div>
         <div>
@@ -223,7 +223,7 @@
         <div>
             <label for="leftVpOffsetInput">Left VP Offset (cm):</label>
             <div class="input-row">
-                <input type="number" id="leftVpOffsetInput" value="15" min="0" max="20" step="1">
+                <input type="number" id="leftVpOffsetInput" value="15" min="0" step="1">
             </div>
         </div>
     </fieldset>
@@ -233,13 +233,13 @@
         <div>
             <label for="rightNumSectorsInput">Sectors:</label>
             <div class="input-row">
-                <input type="number" id="rightNumSectorsInput" value="16" min="1" max="50" step="1">
+                <input type="number" id="rightNumSectorsInput" value="13" min="1" max="50" step="1">
             </div>
         </div>
         <div>
             <label for="rightBlackAngleInput">Sector Angle (deg):</label>
             <div class="input-row">
-                <input type="number" id="rightBlackAngleInput" value="5" min="0.1" max="45" step="0.1">
+                <input type="number" id="rightBlackAngleInput" value="6" min="0.1" max="45" step="0.1">
             </div>
         </div>
         <div>
@@ -251,7 +251,7 @@
         <div>
             <label for="rightVpOffsetInput">Right VP Offset (cm):</label>
             <div class="input-row">
-                <input type="number" id="rightVpOffsetInput" value="15" min="0" max="20" step="1">
+                <input type="number" id="rightVpOffsetInput" value="15" min="0" step="1">
             </div>
         </div>
     </fieldset>
@@ -465,7 +465,8 @@
     const vpOffsetYPx = vpOffsetYCm * scale;
     // VP coordinates are relative to the door group's origin (0,0)
     const vpCenterX = doorWidthPx / 2;
-    const vpCenterY = doorHeightPx + vpOffsetYPx;
+    const innerBottomY = doorHeightPx - borderWidthPx / 2; // Bottom of the clipped inner door area
+    const vpCenterY = innerBottomY + vpOffsetYPx; // VP positioned relative to inner bottom edge
 
     // --- Update SVG Elements ---
 
@@ -485,10 +486,22 @@
     clipRectElement.setAttribute('width', doorWidthPx - borderWidthPx);
     clipRectElement.setAttribute('height', doorHeightPx - borderWidthPx);
 
-    // 4. Clear existing sectors
+    // 4. Clear existing sectors and measurements
     while (sectorsGroupElement.firstChild) {
         sectorsGroupElement.removeChild(sectorsGroupElement.firstChild);
     }
+    
+    // Clear any existing measurement elements from the main group
+    const elementsToRemove = [];
+    for (let child of groupElement.children) {
+        // Remove measurement-related elements (text, path brackets, lines)
+        if (child.tagName === 'text' || 
+            (child.tagName === 'path' && child.getAttribute('stroke') === 'red') ||
+            (child.tagName === 'line' && child.getAttribute('stroke') === 'red')) {
+            elementsToRemove.push(child);
+        }
+    }
+    elementsToRemove.forEach(element => groupElement.removeChild(element));
 
     // 5. Draw New Sectors and Calculate Bottom Intersections
     const numSpaces = Math.max(0, numBlackSectors - 1);
@@ -509,7 +522,6 @@
             const endY = vpCenterY + sectorRadiusPx * Math.sin(endAngle);
 
             // Calculate intersection with inner bottom edge (where sectors are actually visible)
-            const innerBottomY = doorHeightPx - borderWidthPx / 2; // Bottom of the clipped inner door area
             let startIntersectionX = null;
             let endIntersectionX = null;
             
@@ -572,12 +584,11 @@
     
     for (let i = 0; i < sectorWidths.length; i++) {
         const sector = sectorWidths[i];
-        const widthCm = sector.widthCm.toFixed(2);
+        const widthCm = sector.widthCm.toFixed(3);
         
         console.log(`Sector ${sector.sectorIndex}: width=${widthCm}cm, center=${sector.centerX}`); // Debug
         
         // Create bracket to show the width span - positioned below inner door area
-        const innerBottomY = doorHeightPx - borderWidthPx / 2; // Bottom of the clipped inner door area
         const bracketStartY = innerBottomY + 3; // Start bracket 3px below inner door area
         const bracketHeight = 6;
         const bracketEndY = bracketStartY + bracketHeight;
